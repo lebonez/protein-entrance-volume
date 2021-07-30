@@ -4,6 +4,7 @@ This is an algorithm ran by command line that calculates the volume of an entran
 
 ### Command line basics.
 
+```
 usage: main.py [-h] -o OUTER_RESIDUES [OUTER_RESIDUES ...] -i INNER_RESIDUES [INNER_RESIDUES ...]
                [--no-outer] [--no-inner] [-r PROBE_RADIUS] [-g GRID_SIZE] -f PDB_FILE [-V]
 
@@ -25,6 +26,7 @@ optional arguments:
                         The size of the grid to use to calculate the cavity inner surface.
   -f PDB_FILE, --pdb-file PDB_FILE
                         Path to the PDB file.
-  -V, --visualize       Creates and HTML file of the plot
+  -V, --visualize       Creates an ply/html file of the volume
+```
 
 For help using contact: miwalls@siue.edu
