@@ -4,7 +4,7 @@ This is an algorithm ran by command line that calculates the volume of an entran
 
 ### Known issues
 
-* The Numba compiled connected components algorithm doesn't handle errors well and segmentation faults.
+* The Numba compiled connected components algorithm doesn't handle errors well and segmentation faults. Now handles unreasonable volumes by returning largest.
 * Finding an initial free voxel to start the connected components algorithm can be inaccurate but it starts with the centroid of the cavity calculated using the centroid between the inner and outer user provided residues. It does its best to filter out invalid starting indexes by filtering out very small connected component results less than 100 empty voxels.
 * Very small grid sizes less than 0.05 angstroms can cause the code to never finish. Some of the code is log(n) time I used hash lookup tables as much as possible (Python sets/Numba typed dicts) but spherical grid calculations are not that optimized it does as much as possible in parallel but performance drops off past 8 physical CPU cores. One simple speed up would be to not iterate through all border voxels to extend by border radius but to do this analytically (haven't found a method yet maybe could use Poisson reconstruction to do this?). There can be trillions of border voxels for small grid sizes.
 * Visualize is not great needs command arguments it'll likely be confusing and might not work yet. Read the bottom of main.py can give an idea of how it works.
