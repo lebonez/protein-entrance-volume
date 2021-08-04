@@ -59,7 +59,6 @@ def generate_borders(index, eqn, secondary_eqn, grid):
             break
         else:
             index = check_indices[0]
-
     while queue:
         index = queue.popitem()[0]
         check_indices = secondary_eqn + index
@@ -159,13 +158,19 @@ def connected_components(index, eqn, grid):
         new_indices, queue, seen, found, have_queue, out_of_bounds = search_indices(new_indices, indices, seen, found, eqn, have_queue, out_of_bounds, grid)
         if have_queue and not out_of_bounds:
             was_out_of_bounds, nodes, borders = process_components(queue, eqn, grid)
-            if not was_out_of_bounds and len(nodes) > 100:
+            clen = len(nodes)
+            if not was_out_of_bounds and clen > 100:
+                cnodes = np.copy(nodes)
+                cborders = np.copy(borders)
                 break
+            elif not was_out_of_bounds and clen > max_len:
+                cnodes = np.copy(nodes)
+                cborders = np.copy(borders)
+                max_len = clen
             found.update(nodes)
             have_queue = False
         indices = new_indices
-    return nodes, borders
-
+    return cnodes, cborders
 
 @jitclass([('svoxel', types.int64[:]), ('radius', types.float64), ('grid', types.b1[:,:,:])])
 class RasterizeSphere:
