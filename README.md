@@ -41,8 +41,7 @@ python main.py -o 107 78 79 230 -i 224 106 108 -r 1.5 -g 0.1 -f example/pdbs/exa
 ### Command line basics.
 
 ```
-usage: main.py [-h] -o OUTER_RESIDUES [OUTER_RESIDUES ...] -i INNER_RESIDUES [INNER_RESIDUES ...]
-               [--no-outer] [--no-inner] [-r PROBE_RADIUS] [-g GRID_SIZE] -f PDB_FILE [-V]
+usage: main.py [-h] -o OUTER_RESIDUES [OUTER_RESIDUES ...] -i INNER_RESIDUES [INNER_RESIDUES ...] [--no-outer] [--no-inner] [-r PROBE_RADIUS] [-g GRID_SIZE] -f PDB_FILE [-V [{html,ply,xyz}]]
 
 Parse pdb file to get tunnel volume
 
@@ -52,17 +51,16 @@ optional arguments:
                         A list of three or more outer residues to define the entrance of the tunnel.
   -i INNER_RESIDUES [INNER_RESIDUES ...], --inner-residues INNER_RESIDUES [INNER_RESIDUES ...]
                         A list of three or more inner residues to define the end of the tunnel.
-  --no-outer            Don't use outer residues boundary this is helpful if the outer residues shift
-                        positions alot.
-  --no-inner            Don't use inner residues boundary this is helpful if the inner residues shift
-                        positions alot.
+  --no-outer            Don't use outer residues boundary this is helpful if the outer residues shift positions alot.
+  --no-inner            Don't use inner residues boundary this is helpful if the inner residues shift positions alot.
   -r PROBE_RADIUS, --probe-radius PROBE_RADIUS
-                        Radius of the algorithm probe to define the inner surface of the cavity.
+                        Radius of the algorithm probe to define the inner surface of the cavity (default: 1.4).
   -g GRID_SIZE, --grid-size GRID_SIZE
-                        The size of the grid to use to calculate the cavity inner surface.
+                        The size of the grid to use to calculate the cavity inner surface (default: 0.5).
   -f PDB_FILE, --pdb-file PDB_FILE
                         Path to the PDB file.
-  -V, --visualize       Creates an ply/html file of the volume
+  -V [{html,ply,xyz}], --visualize [{html,ply,xyz}]
+                        If specified, creates a visualization (default: html).
 ```
 
 For help using contact: miwalls@siue.edu
