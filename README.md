@@ -28,8 +28,10 @@ git clone https://github.com/lebonez/protein-entrance-volume.git
 ```
 
 Install python requirements:
-`cd {zip or repo}`
-`pip install -f requirements.txt`
+```
+cd protein-entrance-volume
+pip install -f requirements.txt
+```
 
 ### Example
 ```
