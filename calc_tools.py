@@ -36,7 +36,6 @@ def calculate_normals(borders, coords, eqn, components, grid):
                 break
         if grid[indices[j]]:
             normals[i] *= -1
-
     return normals
 
 
@@ -81,7 +80,6 @@ def probe_extend(borders, potentials, grid):
     """
     Extend grid borders by probe radius this is much faster than any set
     based while or for loop.
-    TODO: There should be a faster way to extend a point cloud in all directions by some radius
     """
     for i in prange(borders.shape[0]):
         grid[borders[i] + potentials] = True
@@ -153,6 +151,7 @@ def connected_components(index, eqn, grid):
     limit = len(grid) * 0.0005
     have_queue = False
     out_of_bounds = False
+    max_len = 0
     while not out_of_bounds:
         new_indices = set([np.int64(0)])
         new_indices, queue, seen, found, have_queue, out_of_bounds = search_indices(new_indices, indices, seen, found, eqn, have_queue, out_of_bounds, grid)
@@ -244,6 +243,7 @@ def parallel_spheres(svoxels, radii, grid):
 @njit(parallel=True, nogil=True, cache=True)
 def mesh_volume(vertices, triangles):
     """
+    NOTE: this is much faster then any other Open3D implementation.
     Given a triangle mesh with vertices and triangles we can
     calculate the volume using formula from origin:
     V = 1 / 6 * (v1 x v2) • v3

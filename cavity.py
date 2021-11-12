@@ -90,18 +90,16 @@ class Cavity:
         self.calc_radii()
         scaled_coords = self.inbounds_spheres[['x', 'y', 'z', 'probe_radius']].to_numpy() / self.grid_size
         self.grid = calc_tools.parallel_spheres(scaled_coords[:,:3].astype(np.int64), scaled_coords[:,3], np.ones(self.x_y_z, dtype=bool))
+
         # print("made_the_grid:", (time_ns() - start) * 10 ** (-9))
 
-        #start = time_ns()
         nodes, borders = calc_tools.connected_components(self.cavity_center_n, self.eqn, self.grid)
-        #print("connected_components initial grid:", (time_ns() - start) * 10 ** (-9))
 
         self.grid_minimized = np.zeros(self.n_grid, dtype=bool)
         self.grid_minimized[nodes] = True
         self.grid_minimized = calc_tools.probe_extend(borders, self.probe_potentials, self.grid_minimized)
-        # start = time_ns()
+
         self.volume = np.count_nonzero(self.grid_minimized) * self.voxel_size
-        # print("probe_extend:", (time_ns() - start) * 10 ** (-9))
 
         if self.visualize:
             components = self.cartesian_product(*np.linspace(np.ones(3, dtype=int) * -1, np.ones(3, dtype=int), num=3).T).astype(int)

@@ -15,14 +15,15 @@ import pandas as pd
 import numpy as np
 from cavity import Cavity
 import tempfile
-import open3d as o3d
+# import open3d as o3d
 import visualization
 import calc_tools
 from numba.core.errors import NumbaPendingDeprecationWarning
 
+
 warnings.simplefilter('ignore', category=BiopythonWarning)
 warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
-
+# ax = plt.axes(projection='3d')
 
 def parse_args():
     "Parse args"
@@ -80,7 +81,7 @@ class Atoms:
         points_centered = (points - centroid)
         u = np.linalg.svd(points_centered.T)[0]
         normal = u[:, 2]
-        return (centroid, normal)
+        return centroid, normal
 
     @staticmethod
     def side_point(plane, point):
@@ -112,9 +113,11 @@ class Atoms:
         """
         self.calc_faux_atoms()
         faux_atoms = []
+        outer_points = []
         if not self.no_outer:
             for point in self.outer_spheres + self.outer_plane[0]:
                 if self.side_point(self.outer_plane, point) != self.outer_side:
+                    outer_points.append(point)
                     faux_atoms.append(
                         dict(
                             id='outer',
@@ -125,9 +128,11 @@ class Atoms:
                             inner_residue=False,
                         )
                     )
+        inner_points = []
         if not self.no_inner:
             for point in self.inner_spheres + self.inner_plane[0]:
                 if self.side_point(self.inner_plane, point) != self.inner_side:
+                    inner_points.append(point)
                     faux_atoms.append(
                         dict(
                             id='inner',
@@ -231,18 +236,18 @@ def main():
     if args.visualize:
         # visualization.generate_xyz(self.cavity_voxels)
 
-        # visualization.generate_html(cavity.spheres, cavity.cavity_voxels, cavity.cavity_center, cavity.shift, cavity.grid_size)
+        visualization.generate_html(atoms.atoms, cavity.cavity_voxels, cavity.cavity_center, cavity.shift, cavity.grid_size)
         # start = time_ns()
-        pcd, mesh = visualization.generate_mesh(cavity.cavity_voxels, cavity.cavity_normals, cavity.cavity_center)
-        o3d.io.write_triangle_mesh('ply/{}'.format(args.pdb_file.split('/')[-1].replace('pdb', 'ply')), mesh, write_ascii=True)
+        # pcd, mesh = visualization.generate_mesh(cavity.cavity_voxels, cavity.cavity_normals, cavity.cavity_center)
+        # o3d.io.write_triangle_mesh('ply/{}'.format(args.pdb_file.split('/')[-1].replace('pdb', 'ply')), mesh, write_ascii=True)
         # mesh.paint_uniform_color([1, 0.706, 0])
-        mesh_volume = calc_tools.mesh_volume(np.asarray(mesh.vertices), np.asarray(mesh.triangles))
+        # mesh_volume = calc_tools.mesh_volume(np.asarray(mesh.vertices), np.asarray(mesh.triangles))
         # o3d.visualization.draw_geometries([mesh], mesh_show_wireframe=True, point_show_normal=True)
         # print("generate_mesh:", (time_ns() - start) * 10 ** (-9))
 
-    print(args.pdb_file, mesh_volume, cavity.volume)
-    with open("results/{}".format(args.pdb_file.split('/')[-1].replace('pdb', 'results')), 'w+') as fh:
-        fh.write("{},{}".format(str(mesh_volume), str(cavity.volume)))
+    # print(args.pdb_file, mesh_volume, cavity.volume)
+    # with open("results/{}".format(args.pdb_file.split('/')[-1].replace('pdb', 'results')), 'w+') as fh:
+    #     fh.write("{},{}".format(str(mesh_volume), str(cavity.volume)))
 
 if __name__ == '__main__':
     main()
