@@ -1,4 +1,4 @@
-# Protein Entrance Volume
+dd# Protein Entrance Volume
 
 This is an algorithm ran by command line that calculates the volume of an entrance cavity using user provided boundaries determined by residue ID.
 
@@ -16,13 +16,19 @@ This is an algorithm ran by command line that calculates the volume of an entran
 Only supports Python Version 3 max version 3.7 mostly due to Open3d.
 
 Download or clone the repo:
-`wget https://github.com/lebonez/protein-entrance-volume/archive/refs/heads/main.zip`
-`unzip main.zip`
+```
+wget https://github.com/lebonez/protein-entrance-volume/archive/refs/heads/main.zip
+unzip main.zip
+```
+
 or
-`git clone https://github.com/lebonez/protein-entrance-volume.git`
+
+```
+git clone https://github.com/lebonez/protein-entrance-volume.git
+```
 
 Install python requirements:
-`cd {repo}`
+`cd {zip or repo}`
 `pip install -f requirements.txt`
 
 ### Example
