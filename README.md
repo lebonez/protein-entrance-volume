@@ -12,6 +12,19 @@ This is an algorithm ran by command line that calculates the volume of an entran
 * Some frames might have a situation where the entrance doesn't actually include any inner part of the protein. This is caused by the "hole" of the entrance is smaller than the probe radius supplied by the command line.
 * I think that is all....
 
+### Installation
+Only supports Python Version 3 max version 3.7 mostly due to Open3d.
+
+Download or clone the repo:
+`wget https://github.com/lebonez/protein-entrance-volume/archive/refs/heads/main.zip`
+`unzip main.zip`
+or
+`git clone https://github.com/lebonez/protein-entrance-volume.git`
+
+Install python requirements:
+`cd {repo}`
+`pip install -f requirements.txt`
+
 ### Example
 ```
 python main.py -o 107 78 79 230 -i 224 106 108 -r 1.5 -g 0.1 -f example/pdbs/example.pdb -V
