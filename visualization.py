@@ -14,7 +14,7 @@ from os import getcwd
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
-# import open3d as o3d
+import open3d as o3d
 from time import time_ns
 
 
@@ -22,9 +22,11 @@ def generate_xyz(xyzs):
     """
     Generate xyz of all of the caviy voxels use grid size for visualization
     """
-    with open('plot.xyz', 'w+') as fh:
+    output_name = 'plot.xyz'
+    with open(output_name, 'w+') as fh:
         for xyz in xyzs:
             fh.write('{},{},{}\n'.format(*xyz))
+    print('available at:\n{}/{}'.format(getcwd(), output_name))
 
 
 def generate_html(all_spheres, cavity_voxels, cavity_center, cavity_shift, grid_size):
@@ -111,12 +113,13 @@ def generate_html(all_spheres, cavity_voxels, cavity_center, cavity_shift, grid_
                 if key in line:
                     line = line.replace(key, str(val))
             out.write(line)
-
     print('open in web browser:\n{}/{}'.format(getcwd(), output_name))
 
-# def generate_mesh(xyzs, normals, centroid=np.array([0, 0, 0])):
-#     pcd = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(xyzs))
-#     pcd.normals = o3d.utility.Vector3dVector(normals)
-#     pcd.estimate_normals()
-#     mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd)
-#     return pcd, mesh[0]
+def generate_mesh(xyzs, normals, centroid=np.array([0, 0, 0])):
+    pcd = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(xyzs))
+    pcd.normals = o3d.utility.Vector3dVector(normals)
+    pcd.estimate_normals()
+    mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd)
+    output_name = 'plot.ply'
+    o3d.io.write_triangle_mesh(output_name, mesh[0], write_ascii=True)
+    print('visualize by running:\npython visualize.py {}/{}'.format(getcwd(), output_name))

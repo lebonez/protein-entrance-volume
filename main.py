@@ -15,7 +15,7 @@ import pandas as pd
 import numpy as np
 from cavity import Cavity
 import tempfile
-# import open3d as o3d
+import open3d as o3d
 import visualization
 import calc_tools
 from numba.core.errors import NumbaPendingDeprecationWarning
@@ -23,7 +23,6 @@ from numba.core.errors import NumbaPendingDeprecationWarning
 
 warnings.simplefilter('ignore', category=BiopythonWarning)
 warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
-# ax = plt.axes(projection='3d')
 
 def parse_args():
     "Parse args"
@@ -32,10 +31,10 @@ def parse_args():
     parser.add_argument('-i', '--inner-residues', required=True, type=int, nargs='+', help="A list of three or more inner residues to define the end of the tunnel.")
     parser.add_argument('--no-outer', default=False, action='store_true', help="Don't use outer residues boundary this is helpful if the outer residues shift positions alot.")
     parser.add_argument('--no-inner', default=False, action='store_true', help="Don't use inner residues boundary this is helpful if the inner residues shift positions alot.")
-    parser.add_argument('-r', '--probe-radius', default=1.4, type=float, help="Radius of the algorithm probe to define the inner surface of the cavity.")
-    parser.add_argument('-g', '--grid-size', default=0.5, type=float, help="The size of the grid to use to calculate the cavity inner surface.")
+    parser.add_argument('-r', '--probe-radius', default=1.4, type=float, help="Radius of the algorithm probe to define the inner surface of the cavity (default: %(default)s).")
+    parser.add_argument('-g', '--grid-size', default=0.5, type=float, help="The size of the grid to use to calculate the cavity inner surface (default: %(default)s).")
     parser.add_argument('-f', '--pdb-file', required=True, type=str, help="Path to the PDB file.")
-    parser.add_argument('-V', '--visualize', action='store_true', help="Creates and HTML file of the plot.")
+    parser.add_argument('-V', '--visualize', const='html', nargs='?', choices=('html', 'ply', 'xyz'), help="If specified, creates a visualization (default: html).")
     return parser.parse_args()
 
 class Atoms:
@@ -222,8 +221,7 @@ class Atoms:
 
 def main():
     "Main function to find cavity"
-    # start = time_ns()
-    args = parse_args()
+    args= parse_args()
     atoms = Atoms.parse_atoms(
         args.pdb_file,
         outer_residues=args.outer_residues,
@@ -231,23 +229,18 @@ def main():
         no_outer=args.no_outer, no_inner=args.no_inner
     )
     cavity = atoms.cavity(args.probe_radius, args.grid_size, visualize=args.visualize)
-    # print("cavity:", (time_ns() - start) * 10 ** (-9))
 
     if args.visualize:
-        # visualization.generate_xyz(self.cavity_voxels)
+        if args.visualize == 'html':
+            visualization.generate_html(atoms.atoms, cavity.cavity_voxels, cavity.cavity_center, cavity.shift, cavity.grid_size)
+        elif args.visualize == 'ply':
+            visualization.generate_mesh(cavity.cavity_voxels, cavity.cavity_normals, cavity.cavity_center)
+        elif args.visualize == 'xyz':
+            visualization.generate_xyz(cavity.cavity_voxels)
 
-        visualization.generate_html(atoms.atoms, cavity.cavity_voxels, cavity.cavity_center, cavity.shift, cavity.grid_size)
-        # start = time_ns()
-        # pcd, mesh = visualization.generate_mesh(cavity.cavity_voxels, cavity.cavity_normals, cavity.cavity_center)
-        # o3d.io.write_triangle_mesh('ply/{}'.format(args.pdb_file.split('/')[-1].replace('pdb', 'ply')), mesh, write_ascii=True)
-        # mesh.paint_uniform_color([1, 0.706, 0])
-        # mesh_volume = calc_tools.mesh_volume(np.asarray(mesh.vertices), np.asarray(mesh.triangles))
-        # o3d.visualization.draw_geometries([mesh], mesh_show_wireframe=True, point_show_normal=True)
-        # print("generate_mesh:", (time_ns() - start) * 10 ** (-9))
 
-    # print(args.pdb_file, mesh_volume, cavity.volume)
-    # with open("results/{}".format(args.pdb_file.split('/')[-1].replace('pdb', 'results')), 'w+') as fh:
-    #     fh.write("{},{}".format(str(mesh_volume), str(cavity.volume)))
+    print(cavity.volume, 'Å³')
+
 
 if __name__ == '__main__':
     main()
