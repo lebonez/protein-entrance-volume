@@ -10,7 +10,6 @@ This is an algorithm ran by command line that calculates the volume of an entran
 * Visualize is not great needs command arguments it'll likely be confusing and might not work yet. Read the bottom of main.py can give an idea of how it works.
 * There is an issue where certain atoms from the PDB file have no radius. Typically this is the heme so for now it is just set to 1 angstrom by default.
 * Some frames might have a situation where the entrance doesn't actually include any inner part of the protein. This is caused by the "hole" of the entrance is smaller than the probe radius supplied by the command line.
-* I think that is all....
 
 ### Installation
 Only supports Python Version 3 max version 3.7 mostly due to Open3d.
