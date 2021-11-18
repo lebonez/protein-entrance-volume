@@ -2,3 +2,4 @@ results/
 ply/
 __pycache__/
 plot.*
+.env/
