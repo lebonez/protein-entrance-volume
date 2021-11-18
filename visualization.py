@@ -122,4 +122,4 @@ def generate_mesh(xyzs, normals, centroid=np.array([0, 0, 0])):
     mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd)
     output_name = 'plot.ply'
     o3d.io.write_triangle_mesh(output_name, mesh[0], write_ascii=True)
-    print('visualize by running:\npython visualize.py {}/{}'.format(getcwd(), output_name))
+    print('visualize by running:\npython visualize_ply.py {}/{}'.format(getcwd(), output_name))

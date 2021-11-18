@@ -12,7 +12,7 @@ This is an algorithm ran by command line that calculates the volume of an entran
 * Some frames might have a situation where the entrance doesn't actually include any inner part of the protein. This is caused by the "hole" of the entrance is smaller than the probe radius supplied by the command line.
 
 ### Installation
-Only supports Python Version 3 max version 3.7 mostly due to Open3d.
+Only supports Python Version 3.6 to 3.8 due to Open3d.
 
 Download or clone the repo:
 ```

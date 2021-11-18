@@ -1,4 +1,6 @@
 results/
 ply/
 __pycache__/
-plot.*
+plot*
+.env/
+files/
