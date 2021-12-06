@@ -15,6 +15,7 @@ This is an algorithm ran by command line that calculates the volume of an entran
 Only supports Python Version 3.6 to 3.8 due to Open3d.
 
 Download or clone the repo:
+
 ```
 wget https://github.com/lebonez/protein-entrance-volume/archive/refs/heads/main.zip
 unzip main.zip
@@ -27,6 +28,7 @@ git clone https://github.com/lebonez/protein-entrance-volume.git
 ```
 
 Install python requirements:
+
 ```
 cd protein-entrance-volume
 pip install -f requirements.txt
