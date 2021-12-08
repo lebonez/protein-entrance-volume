@@ -11,6 +11,7 @@ from protein_entrance_volume.atoms import Atoms
 from protein_entrance_volume.grid import Grid
 from protein_entrance_volume import boundary
 from protein_entrance_volume import surface
+from protein_entrance_volume import visualization
 from protein_entrance_volume import utils
 
 
@@ -63,21 +64,21 @@ def main():
 
     # TODO: Don't append inside the class but only returns the new sphere then
     # append here. Also needs better documenting and commenting.
-    boundary_spheres = boundary.Spheres(mbr_coords, mbr_radii, mbr_distance, atoms.arc, extension=args.probe_radius)
+    boundary_points = boundary.Sphere(mbr_distance, atoms.arc, extension=args.probe_radius).coords
 
-    if not args.no_outer:
-        closest_coord = atoms.or_coords[utils.closest_node(atoms.orc, atoms.or_coords)]
-        distance = np.linalg.norm(closest_coord - atoms.orc)
-        boundary_spheres = boundary.HalfSpheres(atoms.or_coords, boundary_spheres.coords, boundary_spheres.radii, distance, atoms.orc, atoms.irc, extension=args.probe_radius)
-
-    if not args.no_inner:
-        closest_coord = atoms.ir_coords[utils.closest_node(atoms.irc, atoms.ir_coords)]
-        distance = np.linalg.norm(closest_coord - atoms.irc)
-        boundary_spheres = boundary.HalfSpheres(atoms.ir_coords, boundary_spheres.coords, boundary_spheres.radii, distance, atoms.irc, atoms.orc, extension=args.probe_radius)
+    # if not args.no_outer:
+    #     closest_coord = atoms.or_coords[utils.closest_node(atoms.orc, atoms.or_coords)]
+    #     distance = np.linalg.norm(closest_coord - atoms.orc)
+    #     boundary_points.extend(boundary.HalfSphere(atoms.or_coords, distance, atoms.orc, atoms.irc, extension=args.probe_radius).coords)
+    #
+    # if not args.no_inner:
+    #     closest_coord = atoms.ir_coords[utils.closest_node(atoms.irc, atoms.ir_coords)]
+    #     distance = np.linalg.norm(closest_coord - atoms.irc)
+    #     boundary_points.extend(boundary.HalfSphere(atoms.ir_coords, distance, atoms.irc, atoms.orc, extension=args.probe_radius).coords)
     # ENDTODO
 
     # Calculate the entrance volume features.
-    sas = surface.Surface(boundary_spheres.coords, boundary_spheres.radii, atoms.orc, num_points=1000)
+    sas = surface.Surface(mbr_coords, mbr_radii, centroid=atoms.orc, boundary_points=boundary_points, num_points=1000)
 
     # Expand sas calculated above by the probe sphere radius and fill the volume if there are any openings.
     grid = Grid.from_spheres(sas.surface_points, np.full(sas.surface_points.shape[0], args.probe_radius), grid_size=args.grid_size)
@@ -98,18 +99,8 @@ def main():
             print(verts)
 
         elif args.visualize == 'ply':
-            # import matplotlib.pyplot as plt
-            # from mpl_toolkits.mplot3d.art3d import Poly3DCollection
             print("Verts:", verts, "Faces:", faces, sep="\n")
-            # fig = plt.figure()
-            # ax = fig.add_subplot(111, projection='3d')
-            # mesh = Poly3DCollection(verts[faces])
-            # ax.add_collection3d(mesh)
-            # ax.set_xlim(0, grid.shape[0])
-            # ax.set_ylim(0, grid.shape[1])
-            # ax.set_zlim(0, grid.shape[2])
-            # plt.tight_layout()
-            # plt.show()
+            # visualization.matplotlib_mesh(verts, faces, grid.shape)
 
         elif args.visualize == 'xyz':
             print(verts)

@@ -99,7 +99,8 @@ def generate_sphere_points(num_points=100):
     """
     indices = np.arange(0, num_points, dtype=float) + 0.5
     phi = np.arccos(1 - 2 * indices / num_points)
-    theta = np.pi * (1 + 5 ** 0.5) * indices
+    golden_ratio = (1 + 5 ** 0.5) / 2
+    theta = 2 * np.pi * indices / golden_ratio
 
     x = (np.cos(theta) * np.sin(phi))
     y = (np.sin(theta) * np.sin(phi))

@@ -15,7 +15,7 @@ class Surface:
     """
     _max_unit_distance = None
 
-    def __init__(self, coords, radii, centroid, num_points=100):
+    def __init__(self, coords, radii, centroid=None, boundary_points=None, num_points=100):
         self._coords = coords
         self._radii = radii
 
@@ -25,11 +25,17 @@ class Surface:
         # Build kdtree for spheres
         kdt = KDTree(self.coords, 10)
 
+        # Build kdtree for boundary_points
+        kdt_boundary = KDTree(boundary_points, 10)
+
         # The limit of how far to look for spheres in the kdtree
         twice_maxradii = self.radii.max() * 2
 
         # Create a set representing indices of s_on_i
         points_set = set(range(num_points))
+
+        # Possible points of the boundary
+        boundary_set = set(range(len(boundary_points)))
 
         # Start with None for the array
         surface_points = None
@@ -72,10 +78,19 @@ class Surface:
             # Get the surface points that are non-intersecting.
             available_coords = s_on_i[list(available_set)]
             if surface_points is None:
-                surface_points = available_coords
+                surface_points = list(available_coords)
             else:
-                surface_points = np.append(surface_points, available_coords, axis=0)
+                surface_points.extend(available_coords)
 
+            # Filter out any boundary points within the current sphere.
+            boundary_set -= set(kdt_boundary.query_ball_point(c_i, r_i))
+            # for i in range(boundary_points.shape[0]):
+
+
+        boundary_points = np.array(boundary_points)[list(boundary_set)]
+        surface_points.extend(list(boundary_points))
+        surface_points = np.array(surface_points)
+        # surface_points.extend(boundary_points)
         # FIXME: there is a chance we get the wrong surface so find a way to
         # verify if we have or not then loop through possible other starting
         # indexes.
@@ -104,6 +119,7 @@ class Surface:
 
         # The surface set should contain our distinct surface so index the
         # surface points using it.
+        surface_points = np.array(surface_points, dtype=np.float64)
         self._surface_points = surface_points[list(surface)]
 
     @property
