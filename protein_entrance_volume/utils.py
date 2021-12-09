@@ -6,6 +6,14 @@ import numpy as np
 from numba import njit, prange
 from numba.typed import Dict
 from numba import types
+from protein_entrance_volume import rasterize
+
+
+def average_distance(point, points):
+    """
+    Return average distance between point and points.
+    """
+    pass
 
 
 def side_point(plane, point):
@@ -61,10 +69,16 @@ def mesh_volume(vertices, triangles):
     return np.abs(volume / 6.0)
 
 
+def furthest_node(node, nodes):
+    deltas = nodes - node
+    dist = np.einsum('ij,ij->i', deltas, deltas)
+    return np.argmax(dist)
+
+
 def closest_node(node, nodes):
     deltas = nodes - node
-    dist_2 = np.einsum('ij,ij->i', deltas, deltas)
-    return np.argmin(dist_2)
+    dist = np.einsum('ij,ij->i', deltas, deltas)
+    return np.argmin(dist)
 
 
 def round_decimal(n, down=False):
@@ -91,6 +105,17 @@ def inside_mbr(coords, mins, maxes):
     rectangle (MBR).
     """
     return ((coords > mins) & (coords < maxes)).all(axis=1)
+
+
+def grid_num_points(radius, grid_size):
+    """
+    Calculate the optimum number of points given the radius and grid size
+    """
+    radius /= grid_size
+    grid = np.zeros(np.int64(np.array([radius, radius, radius]) * 2 + 1), dtype=bool)
+    svoxel = np.int64(np.array(grid.shape) / 2)
+    grid = rasterize.sphere(svoxel, radius, grid)
+    return np.count_nonzero(grid.flatten())
 
 
 def generate_sphere_points(num_points=100):

@@ -7,15 +7,15 @@ from protein_entrance_volume import utils
 import numpy as np
 
 
-class Surface:
+class SAS:
     """
     Surface class for generating the surface of the object
     Note that the centroid is used to (hopefully) determine the correct
     surface by being nearest to the desired surface.
     """
-    _max_unit_distance = None
+    _surface_points = []
 
-    def __init__(self, coords, radii, centroid=None, boundary_points=None, num_points=100):
+    def __init__(self, coords, radii, boundary_points=None, num_points=100):
         self._coords = coords
         self._radii = radii
 
@@ -26,7 +26,10 @@ class Surface:
         kdt = KDTree(self.coords, 10)
 
         # Build kdtree for boundary_points
-        kdt_boundary = KDTree(boundary_points, 10)
+        if boundary_points is not None:
+            kdt_boundary = KDTree(boundary_points, 10)
+            # Possible points of the boundary
+            boundary_set = set(range(len(boundary_points)))
 
         # The limit of how far to look for spheres in the kdtree
         twice_maxradii = self.radii.max() * 2
@@ -34,8 +37,6 @@ class Surface:
         # Create a set representing indices of s_on_i
         points_set = set(range(num_points))
 
-        # Possible points of the boundary
-        boundary_set = set(range(len(boundary_points)))
 
         # Start with None for the array
         surface_points = None
@@ -75,52 +76,23 @@ class Surface:
                     # Remove all intersecting ith sphere surface points.
                     available_set -= set(kdt_sphere.query_ball_point(c_j, r_j))
 
-            # Get the surface points that are non-intersecting.
-            available_coords = s_on_i[list(available_set)]
-            if surface_points is None:
-                surface_points = list(available_coords)
-            else:
-                surface_points.extend(available_coords)
+            self._surface_points.extend(s_on_i[list(available_set)])
 
             # Filter out any boundary points within the current sphere.
-            boundary_set -= set(kdt_boundary.query_ball_point(c_i, r_i))
-            # for i in range(boundary_points.shape[0]):
+            if boundary_points is not None:
+                boundary_set -= set(kdt_boundary.query_ball_point(c_i, r_i))
 
-
-        boundary_points = np.array(boundary_points)[list(boundary_set)]
-        surface_points.extend(list(boundary_points))
-        surface_points = np.array(surface_points)
+        if boundary_points is not None:
+            self._boundary_points = np.array(boundary_points)[list(boundary_set)]
+            
         # surface_points.extend(boundary_points)
         # FIXME: there is a chance we get the wrong surface so find a way to
         # verify if we have or not then loop through possible other starting
         # indexes.
 
-        # Find the nearest surface point to our supplied centroid to orient
-        # ourself in hopes of finding the correct surface in the next steps.
-        starting_index = utils.closest_node(centroid, surface_points)
-
-        # Build KDTree of surface points.
-        kdt = KDTree(surface_points, 10)
-
-        # Surface points very likely has multiple distinct surfaces so given a
-        # starting index lets search "recursively" for connected points
-        # within the calculated max unit sphere distance using the max radii.
-        surface = set()
-        queue = set([starting_index])
-        while queue:
-            i = queue.pop()
-            surface.add(i)
-            # Get points that are close enough to be considered adjacently
-            # connected and queue them up if we haven't marked them as the
-            # surface.
-            for j in kdt.query_ball_point(surface_points[i], self.max_unit_distance):
-                if j not in queue and j not in surface:
-                    queue.add(j)
-
         # The surface set should contain our distinct surface so index the
         # surface points using it.
-        surface_points = np.array(surface_points, dtype=np.float64)
-        self._surface_points = surface_points[list(surface)]
+        self._surface_points = np.array(self._surface_points)
 
     @property
     def coords(self):
@@ -137,30 +109,15 @@ class Surface:
         return self._radii
 
     @property
-    def surface_points(self):
+    def boundary_points(self):
         """
-        Convenience property to return an 2D array of coordinate pairs
+        Convenience property to return an 2D array of boundary coord pairs
         """
-        return self._surface_points
+        return self._boundary_points
 
     @property
-    def max_unit_distance(self, scale=1.2):
+    def surface_points(self):
         """
-        Convenience property to return the maximum unit spherical distance
-        between points on the unit sphere with a scale to catch slightly
-        further points.
+        Convenience property to return an 2D array of surface coord pairs
         """
-        if self._max_unit_distance is None:
-            # Calculate largest possible unit sphere
-            max_unit_sphere = np.array(self._unit_sphere, copy=True) * self.radii.max()
-            # Find closest coordinate index to the first coordinate
-            max_closest_index = utils.closest_node(
-                max_unit_sphere[0], max_unit_sphere[1:]
-            )
-            # Calculate distance betwee the closest and first coordinate
-            max_unit_distance = np.linalg.norm(
-                max_unit_sphere[max_closest_index] - max_unit_sphere[0]
-            )
-            # Round up to the first non-zero decimal and scale
-            self._max_unit_distance = utils.round_decimal(max_unit_distance) * scale
-        return self._max_unit_distance
+        return self._surface_points

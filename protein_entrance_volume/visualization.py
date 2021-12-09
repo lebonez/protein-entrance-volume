@@ -15,13 +15,14 @@ def matplotlib_mesh(verts, faces, grid_shape):
     plt.show()
 
 
-def matplotlib_points(points):
+def matplotlib_points(*points):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    mins = points.min(axis=0)
-    maxes = points.max(axis=0)
-    ax.set_xlim(mins[0], maxes[0])
-    ax.set_ylim(mins[1], maxes[1])
-    ax.set_zlim(mins[2], maxes[2])
-    ax.scatter3D(*points.T)
+    # mins = points.min(axis=0)
+    # maxes = points.max(axis=0)
+    # ax.set_xlim(mins[0], maxes[0])
+    # ax.set_ylim(mins[1], maxes[1])
+    # ax.set_zlim(mins[2], maxes[2])
+    for p in points:
+        ax.scatter3D(*p.T)
     plt.show()
