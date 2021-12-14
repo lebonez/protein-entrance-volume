@@ -61,7 +61,6 @@ def calculate_components(starting_index, eqn, grid, border_only):
         # Check if out of bounds where indices can never be less than zero or
         # greater than limit.
         if (indices > limit).any() or (indices < 0).any():
-            was_out_of_bounds = True
             return was_out_of_bounds, np.array(list(seen))
         # Filter the indices to include only ones that are False on the boolean
         # grid.
@@ -91,6 +90,8 @@ def calculate_components(starting_index, eqn, grid, border_only):
             ies = eqn + i
             # Check out of bounds again because that is bad if it happens.
             if (ies > limit).any() or (ies < 0).any():
+                was_out_of_bounds = True
+                print(was_out_of_bounds, limit, ies)
                 was_out_of_bounds = True
                 return was_out_of_bounds, np.array(list(seen))
             # Get adjacents that are False on the grid.

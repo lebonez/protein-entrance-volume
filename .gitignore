@@ -5,3 +5,7 @@ plot*
 .env/
 files/
 backup/
+*.xyz
+*.csv
+*.txt
+*.npz
