@@ -13,7 +13,7 @@ class Sphere:
     """
     Rasterized sphere on a boolean grid.
     """
-    def __init__(self, svoxel, radius, grid):
+    def __init__(self, svoxel, radius, grid, fill_inside=False):
         """
         Uses 2D mid-point circle algorithm modified for 3D spheres. This is the
         fastest way to gridify alot of spheres.
@@ -37,10 +37,9 @@ class Sphere:
                 if z < x or z < y:
                     break
                 self.fill_all(x, y, z)
-                # Fill the inside as well.
-                # FIXME: this should hopefully be not required in the future
-                for nz in range(z):
-                    self.fill_all(x, y, nz)
+                if fill_inside:
+                    for nz in range(z):
+                        self.fill_all(x, y, nz)
                 y += 1
             x += 1
 
@@ -72,12 +71,12 @@ class Sphere:
 
 
 @njit(parallel=True, nogil=True, cache=True)
-def spheres(coords, radii, grid):
+def spheres(coords, radii, grid, fill_inside=False):
     """
     Rasterize spheres in parallel wraps the jitclass above so that it can be
     cached and doesn't require recompilation everytime. Shared variable grid
     is changed without direct assignment in the class or this method.
     """
     for i in prange(coords.shape[0]):
-        Sphere(coords[i], radii[i], grid)
+        Sphere(coords[i], radii[i], grid, fill_inside)
     return grid

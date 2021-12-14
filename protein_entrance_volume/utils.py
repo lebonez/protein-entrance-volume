@@ -6,12 +6,125 @@ import numpy as np
 from numba import njit, prange
 from numba.typed import Dict
 from numba import types
+from protein_entrance_volume import rasterize
+from protein_entrance_volume import exception
+
+# Can't reference this type inside a numba compiled function.
+int_array = types.int64[:]
+
+# Set of components to generate an equation of directly adjacent coordinates.
+components = np.array(
+    [[-1,  0,  0], [ 0, -1,  0], [ 0,  0, -1], [1, 0, 0], [0, 1, 0], [0, 0, 1]]
+)
+
+def connected_components(grid, starting_voxel, border_only=False):
+    """
+    Using components above we can calculate adjacent indices using the equation
+    calculated by raveling the voxels and subtracting the starting voxel
+    index. This drastically speeds up connected components by using 1D
+    arrays.
+    """
+    # Find raveled 1D index of starting voxel coordinate
+    starting_index = np.ravel_multi_index(starting_voxel, grid.shape)
+    # Find equation of 1D indices of adjacent voxels.
+    eqn = np.ravel_multi_index((starting_voxel + components).T, grid.shape) - starting_index
+    # Run the meat of the algorithm.
+    was_out_of_bounds, nodes = calculate_components(starting_index, eqn, grid.flatten(), border_only)
+    # Out of bounds is bad probably means we were outside of the bounding object.
+    if was_out_of_bounds:
+        raise exception.OutOfBounds
+    return nodes
+
+
+@njit(nogil=True, cache=True)
+def calculate_components(starting_index, eqn, grid, border_only):
+    """
+    Process connected components marking if grid points are on border where
+    number of empty grid points near it is not equal to 6.
+    """
+    # Build a seen numba dict that allows us to mark indices that are true on
+    # the border (False values)
+    seen = Dict.empty(types.int64, types.b1)
+    # Queue numba dict for tracking indices that need checked and store their
+    # adjacent indices as the value.
+    queue = Dict.empty(types.int64, int_array)
+
+    # What is the maximum possible grid point so we can check for out of bounds.
+    limit = len(grid) - 1
+    was_out_of_bounds = False
+
+    # Build starting index's indices queue and make sure the starting index is
+    # at the border.
+    while True:
+        # Get adjacent indices using equation.
+        indices = eqn + starting_index
+        # Check if out of bounds where indices can never be less than zero or
+        # greater than limit.
+        if (indices > limit).any() or (indices < 0).any():
+            was_out_of_bounds = True
+            return was_out_of_bounds, np.array(list(seen))
+        # Filter the indices to include only ones that are False on the boolean
+        # grid.
+        indices = indices[~grid[indices]]
+        # Don't need to be border starting index but make sure it has at least
+        # one False adjacent index.
+        if not border_only and indices.shape[0] > 0:
+            queue[starting_index] = indices
+            break
+        # Need to be border starting index and make sure it has at least
+        # one False adjacent index.
+        if indices.shape[0] != 6 and indices.shape[0] > 0:
+            queue[starting_index] = indices
+            break
+        # Didn't find what we needed time to loop until we do find one.
+        starting_index = indices[0]
+
+    while queue:
+        # Remove item from queue assigning the key and value as below.
+        index, indices = queue.popitem()
+        # Add index to seen and mark if border or not where equal to six and is
+        # not a border index. Also index should always be False on the grid.
+        seen[index] = indices.shape[0] == 6
+        # Loop through all of the False grid indices adjacent to index.
+        for i in indices:
+            # Get adjacent indices of the current i index.
+            ies = eqn + i
+            # Check out of bounds again because that is bad if it happens.
+            if (ies > limit).any() or (ies < 0).any():
+                was_out_of_bounds = True
+                return was_out_of_bounds, np.array(list(seen))
+            # Get adjacents that are False on the grid.
+            ies = ies[~grid[ies]]
+            # Most cases border only is better but sometimes marking non-border
+            # components as well can be useful.
+            if border_only:
+                # Ignore any points that are obviously not near or on the border
+                # Reduces this algorithms run time by ten times in most cases.
+                if ies.shape[0] == 6 and seen[index]:
+                    continue
+            # Add index to key queue if it hasn't been seen or already in the
+            # queue. Also add the adjacent indices of the index to the value.
+            if i not in seen and i not in queue:
+                queue[i] = ies
+    # Border only just returns indices if the value of indices shape was not
+    # six or on the border.
+    if border_only:
+        return was_out_of_bounds, np.array([k for k, v in seen.items() if not v])
+    # Return all seen indices including ones not on the border.
+    return was_out_of_bounds, np.array(list(seen))
+
+
+def average_distance(point, points):
+    """
+    Return average cartesian distance between point and points.
+    """
+    return np.linalg.norm(points - point, axis=1).mean()
 
 
 def side_point(plane, point):
     """
     Finds which side a point lies on a plane. Returns a -1 or 1.
-    Plane should be [center, normal].
+    Plane should be [centroid, normal].
     """
     side_vector = point - plane[0]
     magnitude = np.linalg.norm(side_vector)
@@ -21,12 +134,16 @@ def side_point(plane, point):
 
 def best_fit_plane(points):
     """
-    Find the best fit plane given a set of points.
+    Find the best fit plane given a set of points using singular value
+    decomposition (SVD).
     """
     centroid = np.mean(points, axis=0)
     points_centered = (points - centroid)
+    # Get left singular matrix of the SVD of points centered.
     u = np.linalg.svd(points_centered.T)[0]
+    # Right most column of left singular matrix is normal of best fit plane.
     normal = u[:, 2]
+    # Return centroid and the normal
     return centroid, normal
 
 
@@ -61,10 +178,22 @@ def mesh_volume(vertices, triangles):
     return np.abs(volume / 6.0)
 
 
+def furthest_node(point, points):
+    """
+    The furthest "points" index from point to an array of points
+    """
+    deltas = points - point
+    dist = np.einsum('ij,ij->i', deltas, deltas)
+    return np.argmax(dist)
+
+
 def closest_node(node, nodes):
+    """
+    The closest "points" index from point to an array of points
+    """
     deltas = nodes - node
-    dist_2 = np.einsum('ij,ij->i', deltas, deltas)
-    return np.argmin(dist_2)
+    dist = np.einsum('ij,ij->i', deltas, deltas)
+    return np.argmin(dist)
 
 
 def round_decimal(n, down=False):
@@ -73,16 +202,22 @@ def round_decimal(n, down=False):
     """
     if n == 0:
         return 0
-    sgn = -1 if n < 0 else 1
+
+    sign = -1 if n < 0 else 1
+    # How many decimal places are zero
     scale = int(-np.floor(np.log10(abs(n))))
     if scale <= 0:
         scale = 1
+    # What should we multiply the n value by in order to round up or down.
     factor = 10 ** scale
     if down:
+        # Round up after scaling by factor
         result = np.floor(abs(n)*factor)
     else:
+        # Round down after scaling by factor
         result = np.ceil(abs(n)*factor)
-    return sgn * result / factor
+    # Return result scale back by factor and signed by sign.
+    return sign * result / factor
 
 
 def inside_mbr(coords, mins, maxes):
@@ -93,16 +228,57 @@ def inside_mbr(coords, mins, maxes):
     return ((coords > mins) & (coords < maxes)).all(axis=1)
 
 
+def sphere_num_points(radius, distance):
+    """
+    Calculate the optimum number of points given the radius of sphere and the
+    distance between the points on that sphere.
+    """
+    golden_ratio = (1 + 5 ** 0.5) / 2
+    n1 = 0.5
+    n2 = 1.5
+    theta1 = 2 * np.pi * n1 / golden_ratio
+    theta2 = 2 * np.pi * n2 / golden_ratio
+
+    # Initialize d with size larger than distance
+    d = distance * 2
+    N = 2
+    # Loop until we find an N number of points that result in evenly spaced
+    # number of points that are d (distance) less than distance.
+    while True:
+        phi1 = np.arccos(1 - (2 * n1) / N)
+        phi2 = np.arccos(1 - (2 * n2) / N)
+        x1 = (np.cos(theta1) * np.sin(phi1))
+        x2 = (np.cos(theta2) * np.sin(phi2))
+        y1 = (np.sin(theta1) * np.sin(phi1))
+        y2 = (np.sin(theta2) * np.sin(phi2))
+        z1 = (np.cos(phi1))
+        z2 = (np.cos(phi2))
+        d = radius * np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
+        if distance > d:
+            break
+        N += 1
+    return N
+
+
 def generate_sphere_points(num_points=100):
     """
     Generate some unit cartesian points on the surface of a sphere.
     """
+    # Generate evenly space set of indices from 0 to number of points stepping
+    # by one.
     indices = np.arange(0, num_points, dtype=float) + 0.5
+    # Calculate all of phi values for every index.
     phi = np.arccos(1 - 2 * indices / num_points)
-    theta = np.pi * (1 + 5 ** 0.5) * indices
+    # Golden ratio to generate evenly spaced points in a along surface of
+    # sphere.
+    golden_ratio = (1 + 5 ** 0.5) / 2
+    # Theta calculated using golden ratio and indices array.
+    theta = 2 * np.pi * indices / golden_ratio
 
+    # Calculate our x, y, and z using spherical coordinates from indices.
     x = (np.cos(theta) * np.sin(phi))
     y = (np.sin(theta) * np.sin(phi))
     z = (np.cos(phi))
 
+    # Return the coordinates are x, y, z pairs.
     return np.transpose([x, y, z])

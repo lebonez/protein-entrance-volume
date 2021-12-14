@@ -18,6 +18,7 @@ class Atoms:
     _radii = None
     _or_coords = None
     _ir_coords = None
+    _ar_coords = None
     _orc = None
     _irc = None
     _arc = None
@@ -30,12 +31,15 @@ class Atoms:
         self._df = pd.DataFrame(atoms)
 
     def __str__(self):
+        """
+        String function just print the dataframe.
+        """
         return self._df
 
     @property
     def coords(self):
         """
-        Convenience property to return an 2D array of coordinate pairs
+        Convenience property to return a 2D array of atom coordinates
         """
         if self._coords is None:
             self._coords = self._df[['x', 'y', 'z']].to_numpy()
@@ -44,7 +48,7 @@ class Atoms:
     @property
     def radii(self):
         """
-        Convenience property to return an 1D array of atom radii
+        Convenience property to return a 1D array of atom radii
         """
         if self._radii is None:
             self._radii = self._df.radius.to_numpy()
@@ -67,6 +71,15 @@ class Atoms:
         if self._ir_coords is None:
             self._ir_coords = self._df[self._df['inner_residue']][['x', 'y', 'z']].to_numpy()
         return self._ir_coords
+
+    @property
+    def ar_coords(self):
+        """
+        Convenience property to return all (inner and outer) residues coords (ar_coords).
+        """
+        if self._ar_coords is None:
+            self._ar_coords = np.append(self.or_coords, self.ir_coords, axis=0)
+        return self._ar_coords
 
     @property
     def orc(self):
@@ -102,8 +115,6 @@ class Atoms:
         Make a list of dicts describing details about every atom noting the
         coordinates, radius, residue id, and outer/inner status creating a
         dataframe.
-        TODO: This needs to handle multiple frames and other file types
-        (dcd and others).
         """
         pdb = PDBParser(PERMISSIVE=PERMISSIVE)
         structure = pdb.get_structure(structure_id, pdb_file)
@@ -130,11 +141,11 @@ class Atoms:
         Calculates all of the atoms within a minimum bounding rectangle (mbr)
         determined by the arc and irc. Note: that using the orc rather than the
         irc would give same results. Extension is used to give a value to
-        extend past the max radius (i.e. probe_radius)
+        extend past the max radius (i.e. probe_radius).
         """
         # Get the distance between the irc and arc plus the max radius
         distance = np.linalg.norm(self.irc - self.arc)
-        distance += self.radii.max() + extension
+        distance += (self.radii.max() + extension) * 2
 
         # Calculate minimum and maximum x, y, z coordinates both as an array
         min = self.arc - distance
@@ -143,4 +154,4 @@ class Atoms:
         # Calculate the indices within the mbr.
         indices = utils.inside_mbr(self.coords, min, max)
         # Return filtered coordinates, radii, and mbr radius (distance)
-        return self.coords[indices], self.radii[indices], distance
+        return self.coords[indices], self.radii[indices]

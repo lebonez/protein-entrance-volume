@@ -3,24 +3,30 @@ Created by: Mitchell Walls
 Email: miwalls@siue.edu
 """
 import numpy as np
-from scipy import ndimage
 from protein_entrance_volume import rasterize
 
 
 class Grid:
     """
     Class holds a three dimensional boolean grid with convenience functions.
-    TODO: Add more from_{shape} classmethod using rasterize.{shape} files.
     """
     _coords = None
     _flatten = None
 
-    def __init__(self, grid, zero_shift=0):
+    def __init__(self, grid, zero_shift=0, grid_size=1):
+        """
+        Store some required properties. Note that the class itself isn't the
+        boolean grid but it is self.grid
+        """
         self._grid = grid
+        self._grid_size = grid_size
         self._shape = grid.shape
         self._zero_shift = zero_shift
 
     def __str__(self):
+        """
+        String function print the boolean grid
+        """
         return self.grid
 
     @property
@@ -38,6 +44,13 @@ class Grid:
         Convenience property to reference grid this should never be changed
         """
         return self._grid
+
+    @property
+    def grid_size(self):
+        """
+        Convenience property to reference grid size
+        """
+        return self._grid_size
 
     @property
     def zero_shift(self):
@@ -64,10 +77,17 @@ class Grid:
             self._flatten = self._grid.flatten()
         return self._flatten
 
-    @classmethod
-    def from_spheres(cls, coords, radii, grid_size=1, fill=False):
+    def gridify_point(self, point):
         """
-        Generate the 3D boolean grid from set of generic spheres.
+        Take a cartesian point and project it onto the grid. Then return the
+        voxel coordinate.
+        """
+        return ((point - self.zero_shift) / self.grid_size).astype(np.int64)
+
+    @classmethod
+    def from_spheres(cls, coords, radii, grid_size=1, fill_inside=False):
+        """
+        Generate the 3D boolean grid from set of spheres.
         """
         max_radius = radii.max()
 
@@ -75,17 +95,14 @@ class Grid:
         zero_shift = coords.min(axis=0) - max_radius * 2
         coords -= zero_shift
 
-        # What dimension should the grid be in order to contain all spheres.
+        # What dimension should the grid be in order to contain all spheres plus radii.
         limits = np.ceil((coords.max(axis=0) + max_radius * 2) / grid_size).astype(np.int64)
 
         # Scale the radii and coords to grid_size
         coords /= grid_size
         radii /= grid_size
 
-        grid = rasterize.spheres(coords.astype(np.int64), radii, np.zeros(limits, dtype=bool))
+        # Rasterize spheres on the grid marking spherical surface points as true.
+        grid = rasterize.spheres(coords.astype(np.int64), radii, np.zeros(limits, dtype=bool), fill_inside=fill_inside)
 
-        if fill:
-            # FIXME: Probably a faster way to do this but cleanest is a library
-            # like scipy.
-            ndimage.binary_fill_holes(grid, output=grid)
-        return cls(grid, zero_shift)
+        return cls(grid, zero_shift, grid_size)
