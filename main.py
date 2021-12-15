@@ -130,11 +130,8 @@ def main():
     # shifted to the outer residue centroid.
     starting_point = (o_distance - args.probe_radius) * normal + atoms.orc
 
-    begin = time_ns()
     # Generate the SAS grid from spherical points and radii within the MBR.
     grid = Grid.from_cartesian_spheres(coords, radii, grid_size=args.grid_size, fill_inside=True)
-    duration = time_ns() - begin
-    print("Took:", duration*10**(-9), "s")
 
     # Find a good starting voxel to do SAS search by starting at the starting
     # point that was calculated above and moving towards the orc.
@@ -164,8 +161,10 @@ def main():
 
     # Calculate the SAS using connected_components
     sas_nodes = utils.connected_components(grid.grid, starting_voxel, border_only=True)
+
     # Convert SAS raveled indices to coordinates
     border_points = np.array(np.unravel_index(sas_nodes, grid.shape)).T
+    
     # Generate a new spherical grid for SES calculation using SAS coordinates.
     volume_grid = Grid.from_voxel_spheres(border_points, np.full(border_points.shape[0], args.probe_radius) / args.grid_size, limits=grid.shape, fill_inside=True)
 

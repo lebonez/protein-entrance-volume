@@ -36,7 +36,7 @@ def connected_components(grid, starting_voxel, border_only=False):
     return nodes
 
 
-# @njit(nogil=True, cache=True)
+@njit(nogil=True, cache=True)
 def calculate_components(starting_index, eqn, grid, border_only):
     """
     Process connected components marking if grid points are on border where
