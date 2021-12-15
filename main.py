@@ -130,8 +130,11 @@ def main():
     # shifted to the outer residue centroid.
     starting_point = (o_distance - args.probe_radius) * normal + atoms.orc
 
+    begin = time_ns()
     # Generate the SAS grid from spherical points and radii within the MBR.
-    grid = Grid.from_cartesian_spheres(coords, radii, grid_size=args.grid_size)
+    grid = Grid.from_cartesian_spheres(coords, radii, grid_size=args.grid_size, fill_inside=True)
+    duration = time_ns() - begin
+    print("Took:", duration*10**(-9), "s")
 
     # Find a good starting voxel to do SAS search by starting at the starting
     # point that was calculated above and moving towards the orc.
@@ -156,11 +159,6 @@ def main():
         # Increment the ith magnitude normal factor.
         i += 1
 
-    print(((b_points-grid.zero_shift)/args.grid_size).astype(np.int64))
-    print(starting_voxel)
-    print(grid.shape)
-    b_outer_grid = Grid.from_voxel_spheres(((b_points-grid.zero_shift)/args.grid_size).astype(np.int64), np.full(b_points.shape[0], args.probe_radius)/args.grid_size, limits=grid.grid.shape)
-    visualization.matplotlib_points(np.array(np.unravel_index(np.where(b_outer_grid.grid.flatten()), grid.shape)).T , starting_voxel)
     # Store this starting voxel for vertices file generation
     stored_starting_voxel = starting_voxel.copy()
 
@@ -169,7 +167,7 @@ def main():
     # Convert SAS raveled indices to coordinates
     border_points = np.array(np.unravel_index(sas_nodes, grid.shape)).T
     # Generate a new spherical grid for SES calculation using SAS coordinates.
-    volume_grid = Grid.from_voxel_spheres(border_points, np.full(border_points.shape[0], args.probe_radius) / args.grid_size, limits=grid.shape, fill_inside=False)
+    volume_grid = Grid.from_voxel_spheres(border_points, np.full(border_points.shape[0], args.probe_radius) / args.grid_size, limits=grid.shape, fill_inside=True)
 
     # Find a good starting voxel to do the filling of the hole inside of the volume calculated above.
     starting_voxel = grid.gridify_point(atoms.orc)
@@ -189,7 +187,7 @@ def main():
         starting_voxel = grid.gridify_point(point)
         i += 1
 
-    # If there is a hole to fill or not.
+    # If there is a hole detected to fill or not.
     if starting_voxel is not None:
         # Fill the hole using connected components (essentially does flood fill)
         fill_nodes = utils.connected_components(volume_grid.grid, starting_voxel)

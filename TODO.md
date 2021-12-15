@@ -14,8 +14,6 @@ Boundary half spheres can be optimized.
 
 Boundary spheres calculation in main is kind of messy could be cleared up.
 
-Probably should remove any unneeded functions and classes.
-
 ### New Features
 
 Handle multiple frames and other file types in atoms class as well as any file

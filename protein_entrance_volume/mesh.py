@@ -27,9 +27,3 @@ class Triangle:
         if self._vertices is None:
             self._vertices = calculate_vertices()
         return self._vertices
-
-    def calculate_faces(self):
-        pass
-
-    def calculate_vertices(self):
-        pass

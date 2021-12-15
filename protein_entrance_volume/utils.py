@@ -36,7 +36,7 @@ def connected_components(grid, starting_voxel, border_only=False):
     return nodes
 
 
-@njit(nogil=True, cache=True)
+# @njit(nogil=True, cache=True)
 def calculate_components(starting_index, eqn, grid, border_only):
     """
     Process connected components marking if grid points are on border where
@@ -48,35 +48,38 @@ def calculate_components(starting_index, eqn, grid, border_only):
     # Queue numba dict for tracking indices that need checked and store their
     # adjacent indices as the value.
     queue = Dict.empty(types.int64, int_array)
-
+    # Dict to hold indices to check in the first while loop.
+    check = Dict.empty(types.int64, int_array)
     # What is the maximum possible grid point so we can check for out of bounds.
     limit = len(grid) - 1
     was_out_of_bounds = False
 
+    check[starting_index] = eqn + starting_index
     # Build starting index's indices queue and make sure the starting index is
-    # at the border.
+    # valid and at the border if border only.
     while True:
         # Get adjacent indices using equation.
-        indices = eqn + starting_index
+        index, indices = check.popitem()
         # Check if out of bounds where indices can never be less than zero or
         # greater than limit.
         if (indices > limit).any() or (indices < 0).any():
             return was_out_of_bounds, np.array(list(seen))
         # Filter the indices to include only ones that are False on the boolean
         # grid.
-        indices = indices[~grid[indices]]
+        ies = indices[~grid[indices]]
         # Don't need to be border starting index but make sure it has at least
         # one False adjacent index.
-        if not border_only and indices.shape[0] > 0:
-            queue[starting_index] = indices
+        if not border_only and ies.shape[0] > 0:
+            queue[index] = ies
             break
         # Need to be border starting index and make sure it has at least
         # one False adjacent index.
-        if indices.shape[0] != 6 and indices.shape[0] > 0:
-            queue[starting_index] = indices
+        if ies.shape[0] != 6 and ies.shape[0] > 0:
+            queue[index] = ies
             break
-        # Didn't find what we needed time to loop until we do find one.
-        starting_index = indices[0]
+        # Didn't find what we needed time to add current indices to check further.
+        for i in indices:
+            check[i] = eqn + i
 
     while queue:
         # Remove item from queue assigning the key and value as below.
@@ -90,8 +93,6 @@ def calculate_components(starting_index, eqn, grid, border_only):
             ies = eqn + i
             # Check out of bounds again because that is bad if it happens.
             if (ies > limit).any() or (ies < 0).any():
-                was_out_of_bounds = True
-                print(was_out_of_bounds, limit, ies)
                 was_out_of_bounds = True
                 return was_out_of_bounds, np.array(list(seen))
             # Get adjacents that are False on the grid.
