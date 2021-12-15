@@ -37,13 +37,8 @@ class SAS:
         # Create a set representing indices of s_on_i
         points_set = set(range(num_points))
 
-
-        # Start with None for the array
-        surface_points = None
-
         # Loop through spheres and generate points that are on the surface of
         # spheres that are not intersecting.
-        append_time = 0
         for i in range(self.coords.shape[0]):
             r_i = self.radii[i]
             c_i = self.coords[i]
@@ -84,7 +79,7 @@ class SAS:
 
         if boundary_points is not None:
             self._boundary_points = np.array(boundary_points)[list(boundary_set)]
-            
+
         # surface_points.extend(boundary_points)
         # FIXME: there is a chance we get the wrong surface so find a way to
         # verify if we have or not then loop through possible other starting
