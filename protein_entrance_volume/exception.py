@@ -25,6 +25,7 @@ class StartingVoxelNotFound(Exception):
         """
         super().__init__(self.message)
 
+
 class InvalidFileExtension(Exception):
     def __init__(self, extensions):
         self.message = \

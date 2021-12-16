@@ -12,7 +12,6 @@ from protein_entrance_volume import boundary
 from protein_entrance_volume import rasterize
 from protein_entrance_volume import utils
 from protein_entrance_volume import exception
-from protein_entrance_volume import mesh
 from protein_entrance_volume import visualization
 
 
@@ -79,7 +78,6 @@ def main():
     # Calculate the optimal number of faux spheres so that the faux spheres are
     # within the probe_radius divided by the resolution to each other.
     b_num_points = utils.sphere_num_points(b_distance, args.probe_radius / resolution)
-
     # Generate the larger outer boundary sphere coords
     b_max = boundary.sphere(b_distance, atoms.arc, num_points=b_num_points)
 
@@ -129,23 +127,20 @@ def main():
     # subtracted by the probe radius multiplied by the normal from above then
     # shifted to the outer residue centroid.
     starting_point = (o_distance - args.probe_radius) * normal + atoms.orc
-
     # Generate the SAS grid from spherical points and radii within the MBR.
     grid = Grid.from_cartesian_spheres(coords, radii, grid_size=args.grid_size, fill_inside=True)
-
     # Find a good starting voxel to do SAS search by starting at the starting
     # point that was calculated above and moving towards the orc.
     starting_voxel = grid.gridify_point(starting_point)
     i = 1
     # Swap the normal back to point towards towards the orc from the starting point
     normal *= -1
-    test_points = []
     # Loop through and add ith iteration times the normal until we get an empty
     # (outside of spheres) voxel.
     # test_points.append(starting_point)
     while grid.grid[starting_voxel[0], starting_voxel[1], starting_voxel[2]]:
         # Calculate the point using the ith magnitude normal
-        point = starting_point + (i * normal) * args.grid_size
+        point = starting_point + (i * normal)
         # We are now to close to the outer residue centroid to consider any
         # starting voxel valid so we raise custom exception here and user needs
         # to tune command line parameters.
@@ -156,54 +151,25 @@ def main():
         # Increment the ith magnitude normal factor.
         i += 1
 
-    # Store this starting voxel for vertices file generation
-    stored_starting_voxel = starting_voxel.copy()
+    # Calculate the SAS volume nodes and SAS border nodes using connected_components
+    nodes, sas_nodes = utils.connected_components(grid.grid, starting_voxel)
 
-    # Calculate the SAS using connected_components
-    sas_nodes = utils.connected_components(grid.grid, starting_voxel, border_only=True)
-
-    # Convert SAS raveled indices to coordinates
-    border_points = np.array(np.unravel_index(sas_nodes, grid.shape)).T
-    
-    # Generate a new spherical grid for SES calculation using SAS coordinates.
-    volume_grid = Grid.from_voxel_spheres(border_points, np.full(border_points.shape[0], args.probe_radius) / args.grid_size, limits=grid.shape, fill_inside=True)
-
-    # Find a good starting voxel to do the filling of the hole inside of the volume calculated above.
-    starting_voxel = grid.gridify_point(atoms.orc)
-    i = 1
-    # swap the normal from above back to point away from the orc.
-    normal *= -1
-    # Loop through and add ith iteration times the normal until we get an empty
-    # voxel from the volume grid
-    while volume_grid.grid[starting_voxel[0], starting_voxel[1], starting_voxel[2]]:
-        # Same process as above
-        point = starting_point + (i * normal) * args.grid_size
-        # In this case if we end up within probe radius distance from the orc
-        # there probably isn't a boolean hole to fill anyways.
-        if np.linalg.norm(point - atoms.orc) < args.grid_size * 2:
-            starting_voxel = None
-            break
-        starting_voxel = grid.gridify_point(point)
-        i += 1
-
-    # If there is a hole detected to fill or not.
-    if starting_voxel is not None:
-        # Fill the hole using connected components (essentially does flood fill)
-        fill_nodes = utils.connected_components(volume_grid.grid, starting_voxel)
-        # Convert the fill nodes to coordinates
-        fill_coords = np.unravel_index(fill_nodes, volume_grid.shape)
-        # Fill the hole with true values.
-        volume_grid.grid[fill_coords[0], fill_coords[1], fill_coords[2]] = True
-
-        # Get number of True values in the volume grid array and multiply by grid size.
-    volume_amount = np.count_nonzero(volume_grid.grid) * (args.grid_size ** 3)
+    # Rasterize an example sphere on the same grid as above
+    single_sphere = rasterize.sphere(np.int64(np.array(grid.shape) / 2), args.probe_radius / args.grid_size, np.zeros(grid.shape, dtype=bool), fill_inside=False)
+    # Calculate the equation for the example rasterized sphere
+    eqn = np.where(single_sphere.flatten())[0] - np.ravel_multi_index(np.int64(np.array(grid.shape) / 2), grid.shape)
+    # Apply all of the spheres at every SAS border node.
+    volume_grid = utils.eqn_grid(sas_nodes, eqn, np.zeros(np.prod(grid.shape), dtype=bool))
+    # Set the nodes from the previous connected components to true.
+    volume_grid[nodes] = True
+    # Calculate the volume.
+    volume_amount = np.count_nonzero(volume_grid) * (args.grid_size ** 3)
     print("Volume: {} Å³".format(volume_amount))
 
     if args.vertices_file:
-        # Run connected components on the volume grid to get SES nodes
-        ses_nodes = utils.connected_components(np.invert(volume_grid.grid), stored_starting_voxel)
+        # Run connected components on the volume grid to get SES border nodes for file generation
+        _, ses_nodes = utils.connected_components(np.invert(volume_grid.reshape(grid.shape)), starting_voxel, border_only=True)
         verts = np.array(np.unravel_index(ses_nodes, grid.shape)).T * args.grid_size + grid.zero_shift
-        # mesh = mesh.Triangle(volume_grid)
         # Convert SES nodes to coordinates in the original atom coordinate system.
         # Generate an xyz file with atoms called X.
         if args.vertices_file.endswith(".xyz"):

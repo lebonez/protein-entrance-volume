@@ -85,22 +85,6 @@ class Grid:
         return ((point - self.zero_shift) / self.grid_size).astype(np.int64)
 
     @classmethod
-    def from_voxel_spheres(cls, coords, radii, limits=None, fill_inside=False):
-        """
-        Generate the 3D boolean grid from set of voxel (positive integer) spheres.
-        """
-        # If no limits provided then calculate required limits
-        if limits is None:
-            limits = np.ceil(coords.max(axis=0) + radii.max() * 2).astype(np.int64)
-
-        # Rasterize spheres on the grid marking spherical surface points as true.
-        grid = rasterize.spheres(coords, radii, np.zeros(limits, dtype=bool), fill_inside=fill_inside)
-
-        # No zero shift
-        zero_shift = 0
-        return cls(grid)
-
-    @classmethod
     def from_cartesian_spheres(cls, coords, radii, grid_size=1, fill_inside=False):
         """
         Generate the 3D boolean grid from a set of cartesian (non-integer) spheres.

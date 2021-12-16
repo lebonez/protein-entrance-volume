@@ -70,6 +70,15 @@ class Sphere:
             self.fill_signs(z, y, x)
 
 
+@njit(nogil=True, cache=True)
+def sphere(coord, radius, grid, fill_inside=False):
+    """
+    Rasterize a sphere on the grid same as spheres below but just for one sphere
+    """
+    Sphere(coord, radius, grid, fill_inside)
+    return grid
+
+
 @njit(parallel=True, nogil=True, cache=True)
 def spheres(coords, radii, grid, fill_inside=False):
     """

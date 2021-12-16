@@ -29,11 +29,11 @@ def connected_components(grid, starting_voxel, border_only=False):
     # Find equation of 1D indices of adjacent voxels.
     eqn = np.ravel_multi_index((starting_voxel + components).T, grid.shape) - starting_index
     # Run the meat of the algorithm.
-    was_out_of_bounds, nodes = calculate_components(starting_index, eqn, grid.flatten(), border_only)
+    was_out_of_bounds, nodes, borders = calculate_components(starting_index, eqn, grid.flatten(), border_only)
     # Out of bounds is bad probably means we were outside of the bounding object.
     if was_out_of_bounds:
         raise exception.OutOfBounds
-    return nodes
+    return nodes, borders
 
 
 @njit(nogil=True, cache=True)
@@ -63,7 +63,7 @@ def calculate_components(starting_index, eqn, grid, border_only):
         # Check if out of bounds where indices can never be less than zero or
         # greater than limit.
         if (indices > limit).any() or (indices < 0).any():
-            return was_out_of_bounds, np.array(list(seen))
+            return was_out_of_bounds, np.array(list(seen)), np.array([k for k, v in seen.items() if not v])
         # Filter the indices to include only ones that are False on the boolean
         # grid.
         ies = indices[~grid[indices]]
@@ -94,7 +94,7 @@ def calculate_components(starting_index, eqn, grid, border_only):
             # Check out of bounds again because that is bad if it happens.
             if (ies > limit).any() or (ies < 0).any():
                 was_out_of_bounds = True
-                return was_out_of_bounds, np.array(list(seen))
+                return was_out_of_bounds, np.array(list(seen)), np.array([k for k, v in seen.items() if not v])
             # Get adjacents that are False on the grid.
             ies = ies[~grid[ies]]
             # Most cases border only is better but sometimes marking non-border
@@ -111,9 +111,21 @@ def calculate_components(starting_index, eqn, grid, border_only):
     # Border only just returns indices if the value of indices shape was not
     # six or on the border.
     if border_only:
-        return was_out_of_bounds, np.array([k for k, v in seen.items() if not v])
+        return was_out_of_bounds, np.array(list(seen)), np.array([k for k, v in seen.items() if not v])
     # Return all seen indices including ones not on the border.
-    return was_out_of_bounds, np.array(list(seen))
+    return was_out_of_bounds, np.array(list(seen)), np.array([k for k, v in seen.items() if not v])
+
+
+@njit(parallel=True, nogil=True, cache=True)
+def eqn_grid(nodes, eqn, grid):
+    """
+    This function takes a 1D boolean grid applies an eqn to
+    every node in parallel (haven't found a way to do this without numba that
+    is as fast.)
+    """
+    for i in prange(nodes.shape[0]):
+        grid[nodes[i] + eqn] = True
+    return grid
 
 
 def average_distance(point, points):
