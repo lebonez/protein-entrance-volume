@@ -172,18 +172,22 @@ def main():
         # Run connected components on the volume grid to get SES border nodes for file generation
         _, ses_nodes = utils.connected_components(np.invert(grid.grid), starting_voxel, border_only=True)
         verts = np.array(np.unravel_index(ses_nodes, grid.shape)).T * args.grid_size + grid.zero_shift
-        # Convert SES nodes to coordinates in the original atom coordinate system.
-        # Generate an xyz file with atoms called X.
         if args.vertices_file.endswith(".xyz"):
+            # Convert SES nodes to coordinates in the original atom coordinate system.
+            # Generate an xyz file with atoms called X.
             with open(args.vertices_file, 'w+', encoding='utf-8') as vertices_file:
                 vertices_file.write("{}\nVolume: {} Å³\n".format(str(verts.shape[0]), volume_amount))
                 for vert in verts:
                     vertices_file.write("X {} {} {}\n".format(*list(vert)))
         elif args.vertices_file.endswith(".csv"):
+            # CSV file with one vertices x,y,z per row
             np.savetxt(args.vertices_file, verts, header="x,y,z", comments="", delimiter=",")
         elif args.vertices_file.endswith(".txt"):
+            # Dump vertices and volume to a space separated file
             np.savetxt(args.vertices_file, verts, header="Volume: {} Å³".format(volume_amount))
         elif args.vertices_file.endswith(".npz"):
+            # Dump verts to a npz array file fastest and smallest way ideal
+            # for doing post processing of the verts.
             np.savez_compressed(args.vertices_file, verts)
         else:
             raise exception.InvalidFileExtension([".xyz", ".csv", ".txt", ".npz"])

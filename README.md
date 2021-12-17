@@ -59,7 +59,7 @@ optional arguments:
                             xyz: Outputs the vertices as a molecular xyz file with each vertices marked as an "X" atom and has volume as the comment line after number of atoms.
                             csv: Vertices array is dumped to a file with "x,y,z" as header and each line containing a comma separated x,y,z coordinate.
                             txt: Vertices array is dumped to a txt file with first line containing volume of vertices and x y z coordinates space separated.
-                            npz: Recommended if loading the vertices array back into numpy uses much less space and is faster.
+                            npz: Recommended if loading the vertices array back into numpy for post processing uses much less space and is faster.
 ```
 
 For help using contact: miwalls@siue.edu
