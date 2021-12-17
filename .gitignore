@@ -1,10 +1,4 @@
-results/
-ply/
 __pycache__/
-plot*
-.env/
-files/
-backup/
 *.xyz
 *.csv
 *.txt
