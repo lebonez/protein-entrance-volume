@@ -25,14 +25,14 @@ def parse_args():
     parser.add_argument('--no-inner', default=False, action='store_true', help="Don't use inner residues boundary this is helpful if the inner residues shift positions alot.")
     parser.add_argument('-r', '--probe-radius', default=1.4, type=float, help="Radius of the algorithm probe to define the inner surface of the cavity (default: %(default)s).")
     parser.add_argument('-g', '--grid-size', default=0.2, type=float, help="The size of the grid to use to calculate the cavity inner surface (default: %(default)s).")
-    parser.add_argument('-R', '--resolution', default=4, type=float, help="Lower values decreases runtime and higher values for accuracy default: %(default)s).")
+    parser.add_argument('-R', '--resolution', default=4, type=float, help="Lower values decreases runtime and higher values for accuracy (default: %(default)s).")
     parser.add_argument('-f', '--pdb-file', required=True, type=str, help="Path to the PDB file.")
     parser.add_argument('-v', '--vertices-file', default="", type=str, help="""
 Output the vertices to file which file types depends on the file extension provided in this argument.
     xyz: Outputs the vertices as a molecular xyz file with each vertices marked as an "X" atom and has volume as the comment line after number of atoms.
     csv: Vertices array is dumped to a file with "x,y,z" as header and each line containing a comma separated x,y,z coordinate.
     txt: Vertices array is dumped to a txt file with first line containing volume of vertices and x y z coordinates space separated.
-    npz: Recommended if loading the vertices array back into numpy uses much less space and is faster.
+    npz: Recommended if loading the vertices array back into numpy for post processing uses much less space and is faster.
     """)
     return parser.parse_args()
 
@@ -191,6 +191,7 @@ def main():
             np.savez_compressed(args.vertices_file, verts)
         else:
             raise exception.InvalidFileExtension([".xyz", ".csv", ".txt", ".npz"])
+
     end = time_ns() - start
     print("Took:", end * 10 ** (-9), "s")
 

@@ -50,7 +50,7 @@ optional arguments:
   -g GRID_SIZE, --grid-size GRID_SIZE
                         The size of the grid to use to calculate the cavity inner surface (default: 0.2).
   -R RESOLUTION, --resolution RESOLUTION
-                        Lower values decreases runtime and higher values for accuracy default: 4).
+                        Lower values decreases runtime and higher values for accuracy (default: 4).
   -f PDB_FILE, --pdb-file PDB_FILE
                         Path to the PDB file.
   -v VERTICES_FILE, --vertices-file VERTICES_FILE
