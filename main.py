@@ -181,12 +181,14 @@ def main():
     # Print out the volume.
     print("Volume: {} Å³".format(volume_amount))
 
+    end = time_ns() - start
+    print("Took:", end * 10 ** (-9), "s")
+
     if args.vertices_file:
         # Run connected components on the volume grid to get SES border nodes for file generation
         _, ses_nodes = utils.connected_components(np.invert(grid.grid), starting_voxel, border_only=True)
         # Calculate center of voxels then scale and shift them back to the original atom coordinates system.
         verts = (np.array(np.unravel_index(ses_nodes, grid.shape)).T + 0.5) * args.grid_size + grid.zero_shift
-        # visualization.matplotlib_points(verts)
         if args.vertices_file.endswith(".xyz"):
             # Convert SES nodes to coordinates in the original atom coordinate system.
             # Generate an xyz file with atoms called X by far the slowest.
@@ -206,9 +208,8 @@ def main():
             np.savez_compressed(args.vertices_file, verts)
         else:
             raise exception.InvalidFileExtension([".xyz", ".csv", ".txt", ".npz"])
-
-    end = time_ns() - start
-    print("Took:", end * 10 ** (-9), "s")
+            
+        visualization.matplotlib_points(verts)
 
 
 if __name__ == '__main__':
