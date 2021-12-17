@@ -85,9 +85,12 @@ class Grid:
         return ((point - self.zero_shift) / self.grid_size).astype(np.int64)
 
     @classmethod
-    def from_cartesian_spheres(cls, coords, radii, grid_size=1, fill_inside=False):
+    def from_cartesian_spheres(
+        cls, coords, radii, grid_size=1, fill_inside=False
+    ):
         """
-        Generate the 3D boolean grid from a set of cartesian (non-integer) spheres.
+        Generate the 3D boolean grid from a set of cartesian (non-integer)
+        spheres.
         """
         max_radius = radii.max()
 
@@ -95,14 +98,21 @@ class Grid:
         zero_shift = coords.min(axis=0) - max_radius * 2
         coords -= zero_shift
 
-        # What dimension should the grid be in order to contain all spheres plus radii.
-        limits = np.ceil((coords.max(axis=0) + max_radius * 2) / grid_size).astype(np.int64)
+        # What dimension should the grid be in order to contain all spheres
+        # plus radii.
+        limits = np.ceil(
+            (coords.max(axis=0) + max_radius * 2) / grid_size
+        ).astype(np.int64)
 
         # Scale the radii and coords to grid_size
         coords /= grid_size
         radii /= grid_size
 
-        # Rasterize spheres on the grid marking spherical surface points as true.
-        grid = rasterize.spheres(coords.astype(np.int64), radii, np.zeros(limits, dtype=bool), fill_inside=fill_inside)
+        # Rasterize spheres on the grid marking spherical surface points as
+        # true.
+        grid = rasterize.spheres(
+            coords.astype(np.int64), radii,
+            np.zeros(limits, dtype=bool), fill_inside=fill_inside
+        )
 
         return cls(grid, zero_shift, grid_size)

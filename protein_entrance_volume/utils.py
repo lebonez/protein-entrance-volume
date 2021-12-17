@@ -26,10 +26,14 @@ def connected_components(grid, starting_voxel, border_only=False):
     # Find raveled 1D index of starting voxel coordinate
     starting_index = np.ravel_multi_index(starting_voxel, grid.shape)
     # Find equation of 1D indices of adjacent voxels.
-    eqn = np.ravel_multi_index((starting_voxel + components).T, grid.shape) - starting_index
+    eqn = np.ravel_multi_index((starting_voxel + components).T, grid.shape) \
+        - starting_index
     # Run the meat of the algorithm.
-    was_out_of_bounds, nodes, borders = calculate_components(starting_index, eqn, grid.flatten(), border_only)
-    # Out of bounds is bad probably means we were outside of the bounding object.
+    was_out_of_bounds, nodes, borders = calculate_components(
+        starting_index, eqn, grid.flatten(), border_only
+    )
+    # Out of bounds is bad probably means we were outside of the bounding
+    # object.
     if was_out_of_bounds:
         raise exception.OutOfBounds
     return nodes, borders
@@ -49,7 +53,8 @@ def calculate_components(starting_index, eqn, grid, border_only):
     queue = Dict.empty(types.int64, int_array)
     # Dict to hold indices to check in the first while loop.
     check = Dict.empty(types.int64, int_array)
-    # What is the maximum possible grid point so we can check for out of bounds.
+    # What is the maximum possible grid point so we can check for out of
+    # bounds.
     limit = len(grid) - 1
     was_out_of_bounds = False
 
@@ -62,7 +67,9 @@ def calculate_components(starting_index, eqn, grid, border_only):
         # Check if out of bounds where indices can never be less than zero or
         # greater than limit.
         if (indices > limit).any() or (indices < 0).any():
-            return was_out_of_bounds, np.array(list(seen)), np.array([k for k, v in seen.items() if not v])
+            return (was_out_of_bounds, np.array(list(seen)),
+                np.array([k for k, v in seen.items() if not v])
+            )
         # Filter the indices to include only ones that are False on the boolean
         # grid.
         ies = indices[~grid[indices]]
@@ -76,7 +83,8 @@ def calculate_components(starting_index, eqn, grid, border_only):
         if ies.shape[0] != 6 and ies.shape[0] > 0:
             queue[index] = ies
             break
-        # Didn't find what we needed time to add current indices to check further.
+        # Didn't find what we needed time to add current indices to check
+        # further.
         for i in indices:
             check[i] = eqn + i
 
@@ -93,14 +101,17 @@ def calculate_components(starting_index, eqn, grid, border_only):
             # Check out of bounds again because that is bad if it happens.
             if (ies > limit).any() or (ies < 0).any():
                 was_out_of_bounds = True
-                return was_out_of_bounds, np.array(list(seen)), np.array([k for k, v in seen.items() if not v])
+                return (was_out_of_bounds, np.array(list(seen)),
+                    np.array([k for k, v in seen.items() if not v])
+                )
             # Get adjacents that are False on the grid.
             ies = ies[~grid[ies]]
             # Most cases border only is better but sometimes marking non-border
             # components as well can be useful.
             if border_only:
-                # Ignore any points that are obviously not near or on the border
-                # Reduces this algorithms run time by ten times in most cases.
+                # Ignore any points that are obviously not near or on the
+                # border. Reduces this algorithms run time by ten times in most
+                # cases.
                 if ies.shape[0] == 6 and seen[index]:
                     continue
             # Add index to key queue if it hasn't been seen or already in the
@@ -108,7 +119,9 @@ def calculate_components(starting_index, eqn, grid, border_only):
             if i not in seen and i not in queue:
                 queue[i] = ies
     # Return all seen indices including ones not on the border.
-    return was_out_of_bounds, np.array(list(seen)), np.array([k for k, v in seen.items() if not v])
+    return (was_out_of_bounds, np.array(list(seen)),
+        np.array([k for k, v in seen.items() if not v])
+    )
 
 
 @njit(parallel=True, nogil=True, cache=True)
@@ -182,7 +195,9 @@ def mesh_area(vertices, triangles):
     area = 0
     for i in prange(triangles.shape[0]):
         triangle = vertices[triangles[i]]
-        area += np.linalg.norm(np.cross((triangle[0] - triangle[1]), (triangle[0] - triangle[2])))
+        area += np.linalg.norm(
+            np.cross((triangle[0] - triangle[1]), (triangle[0] - triangle[2]))
+        )
     return area / 2.0
 
 
@@ -262,7 +277,8 @@ def sphere_num_points(radius, distance):
     d2 = distance ** 2
     # solve for N, d = r * sqrt((cos(b)*sqrt(6/N-9/N^2)-cos(a)*sqrt(2/N-1/N^2))^2+(sin(b)*sqrt(6/N-9/N^2)-sin(a)*sqrt(2/N-1/N^2))^2+4/N^2)
     # This is the approximation of the ugly equation above. 1.85 gives a very
-    # close value to the true N compared to using a brute force while loop method.
+    # close value to the true N compared to using a brute force while loop
+    # method.
     return np.int64(-1.85 * (4 * np.sqrt(3) * r2 * ratio - 2 * r2) / d2)
 
 

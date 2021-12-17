@@ -80,11 +80,6 @@ def main():
         inner_residues=args.inner_residues
     )
 
-    # This value is essentially used to scale the number of points for boundary
-    # spheres so that they are evenly space by the probe radius divided by
-    # resolution.
-    resolution = args.resolution
-
     # Reduce computation complexity for the grid by only using spheres within
     # the mbr calculated by the inner and outer residue atoms.
     atoms_mbr = atoms.residues_mbr(extension=args.probe_radius)
@@ -107,7 +102,7 @@ def main():
     # Calculate the optimal number of faux spheres so that the faux spheres are
     # within the probe_radius divided by the resolution to each other.
     b_num_points = utils.sphere_num_points(
-        b_distance, args.probe_radius / resolution
+        b_distance, args.probe_radius / args.resolution
     )
 
     # Generate the larger outer boundary sphere coords
@@ -123,7 +118,7 @@ def main():
     # No outer means to not create the outer residue faux spheres boundary
     if not args.no_outer:
         o_num_points = utils.sphere_num_points(
-            o_distance, args.probe_radius / resolution
+            o_distance, args.probe_radius / args.resolution
         )
         # Outer residue boundary half spheres coords.
         b_outer = boundary.half_sphere(
@@ -135,7 +130,7 @@ def main():
     # No inner means to not create the inner residue faux spheres boundary
     if not args.no_inner:
         i_num_points = utils.sphere_num_points(
-            i_distance, args.probe_radius / resolution
+            i_distance, args.probe_radius / args.resolution
         )
         # Inner residue boundary half spheres coords.
         b_inner = boundary.half_sphere(

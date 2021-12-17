@@ -60,7 +60,9 @@ class Atoms:
         Convenience property to return outer residues coords (or_coords).
         """
         if self._or_coords is None:
-            self._or_coords = self._df[self._df['outer_residue']][['x', 'y', 'z']].to_numpy()
+            self._or_coords = self._df[
+                self._df['outer_residue']][['x', 'y', 'z']
+            ].to_numpy()
         return self._or_coords
 
     @property
@@ -69,13 +71,15 @@ class Atoms:
         Convenience property to return inner residues coords (ir_coords).
         """
         if self._ir_coords is None:
-            self._ir_coords = self._df[self._df['inner_residue']][['x', 'y', 'z']].to_numpy()
+            self._ir_coords = self._df[
+                self._df['inner_residue']][['x', 'y', 'z']].to_numpy()
         return self._ir_coords
 
     @property
     def ar_coords(self):
         """
-        Convenience property to return all (inner and outer) residues coords (ar_coords).
+        Convenience property to return all (inner and outer) residues coords
+        (ar_coords).
         """
         if self._ar_coords is None:
             self._ar_coords = np.append(self.or_coords, self.ir_coords, axis=0)
@@ -110,7 +114,9 @@ class Atoms:
         return self._arc
 
     @classmethod
-    def parse_atoms(cls, pdb_file, structure_id="prot", PERMISSIVE=False, outer_residues=[], inner_residues=[]):
+    def parse_atoms(cls, pdb_file, structure_id="prot", PERMISSIVE=False,
+        outer_residues=[], inner_residues=[]
+    ):
         """
         Make a list of dicts describing details about every atom noting the
         coordinates, radius, residue id, and outer/inner status creating a
@@ -127,8 +133,8 @@ class Atoms:
                     dict(
                         id=atom.fullname,
                         x = x, y = y, z = z,
-                        # FIXME: Some atoms don't get a radius for now set them to 1
-                        radius=_get_atom_radius(atom) if _get_atom_radius(atom) > 1 else 1.0,
+                        radius=_get_atom_radius(atom) if \
+                            _get_atom_radius(atom) > 1 else 1.0,
                         residue_id=residue_id,
                         outer_residue=residue_id in outer_residues,
                         inner_residue=residue_id in inner_residues,

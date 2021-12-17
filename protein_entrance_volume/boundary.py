@@ -2,7 +2,6 @@
 Created by: Mitchell Walls
 Email: miwalls@siue.edu
 """
-import numpy as np
 from protein_entrance_volume import utils
 
 
