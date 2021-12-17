@@ -73,9 +73,9 @@ def main():
     # Create a larger outer spherical boundary set of faux spheres with radius
     # being the average distance from the centroid of all residues to the coords
     # of all residues.
-    # b_distance = utils.average_distance(atoms.arc, atoms.ar_coords)
-    b_furthest_coord = atoms.or_coords[utils.furthest_node(atoms.arc, atoms.or_coords)]
-    b_distance = np.linalg.norm(b_furthest_coord - atoms.arc)
+    b_distance = utils.average_distance(atoms.arc, atoms.ar_coords)
+    # b_furthest_coord = atoms.or_coords[utils.furthest_node(atoms.arc, atoms.or_coords)]
+    # b_distance = np.linalg.norm(b_furthest_coord - atoms.arc)
 
     # Calculate the optimal number of faux spheres so that the faux spheres are
     # within the probe_radius divided by the resolution to each other.
