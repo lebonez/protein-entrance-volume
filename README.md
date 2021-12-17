@@ -9,7 +9,8 @@ completely enclose the volume and is also required if no-inner and no-outer flag
 This distance could and probably should be modified depending on the use case. I have a few theories that this distance
 should contain the inner and outer residue half sphere but not go too far beyond them to prevent weird artifacts.
 A good idea (but hard to execute mathematically) is to completely rework the idea and make a quasi-pill capsule shape by connecting the
-inner and outer boundary half spheres (plane circle) by an angled varying radius cylinder.
+inner and outer boundary half spheres (plane circle) by an angled varying radius cylinder. Issue with this is that the residue half sphere planes
+can get pretty unorthodox in their locations and cause the half spheres to intersect.
 
 ### Installation
 Should work with most version 3 Pythons. Recommend Python 3.9 as of 12/17/2021 (Numba not working with higher versions).
