@@ -122,10 +122,13 @@ def main():
     # centroid lies on and make sure the normal from the plane above points in the
     # opposite direction.
     opposing_side = utils.side_point(plane, atoms.irc)
+
+    normal = plane[1]
+
     # Make sure the normal is not pointing at the opposing side if it is swap it.
     if utils.side_point(plane, plane[1] + atoms.orc) == opposing_side:
         # Swap normal to point away from the irc if it wasn't already.
-        normal = plane[1] * -1
+        normal *= -1
     # Calculate the point using the distance to the outer residue half spheres
     # subtracted by the probe radius multiplied by the normal from above then
     # shifted to the outer residue centroid.

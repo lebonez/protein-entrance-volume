@@ -27,4 +27,4 @@ def half_sphere(plane_coords, radius, centroid, opposing_point, num_points=1000)
     side_point = utils.side_point(plane, opposing_point)
     sphere_points = unit_sphere * radius + centroid
     half_sphere_points = sphere_points[utils.side_points(plane, sphere_points) != side_point]
-    return half_sphere_points, plane, side_point
+    return half_sphere_points
