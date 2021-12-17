@@ -174,7 +174,9 @@ def main():
     if args.vertices_file:
         # Run connected components on the volume grid to get SES border nodes for file generation
         _, ses_nodes = utils.connected_components(np.invert(grid.grid), starting_voxel, border_only=True)
-        verts = np.array(np.unravel_index(ses_nodes, grid.shape)).T * args.grid_size + grid.zero_shift
+        # Calculate center of voxels then scale and shift them back to the original atom coordinate system.
+        verts = (np.array(np.unravel_index(ses_nodes, grid.shape)).T + 0.5) * args.grid_size + grid.zero_shift
+        print(verts)
         # visualization.matplotlib_points(verts)
         if args.vertices_file.endswith(".xyz"):
             # Convert SES nodes to coordinates in the original atom coordinate system.
