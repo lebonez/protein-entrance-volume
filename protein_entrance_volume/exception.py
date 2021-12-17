@@ -38,7 +38,7 @@ class InvalidFileExtension(Exception):
     """
     def __init__(self, extensions):
         self.message = \
+        f"""
+        Error: the file extension must be one of ({(', ').join(extensions)}).
         """
-        Error: the file extension must be one of ({}).
-        """.format((', ').join(extensions))
         super().__init__(self.message)
