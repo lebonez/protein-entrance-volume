@@ -129,6 +129,19 @@ def average_distance(point, points):
     """
     return np.linalg.norm(points - point, axis=1).mean()
 
+def side_points(plane, points):
+    """
+    Finds which side a point lies on a plane. Returns a -1 or 1.
+    Plane should be [centroid, normal].
+    """
+    side_vectors = points - plane[0]
+    magnitudes = np.linalg.norm(side_vectors, axis=1)
+    unit_vectors = []
+    for i in range(3):
+        unit_vectors.append(np.divide(side_vectors.T[i], magnitudes))
+    unit_vectors = np.array(unit_vectors).T
+    signs = np.sign(np.dot(unit_vectors, plane[1].reshape((3,1)))).flatten()
+    return signs.astype(int)
 
 def side_point(plane, point):
     """

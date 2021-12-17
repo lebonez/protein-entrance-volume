@@ -26,8 +26,5 @@ def half_sphere(plane_coords, radius, centroid, opposing_point, num_points=1000)
     plane = utils.best_fit_plane(plane_coords)
     side_point = utils.side_point(plane, opposing_point)
     sphere_points = unit_sphere * radius + centroid
-    half_sphere_points = []
-    for point in sphere_points:
-        if utils.side_point(plane, point) != side_point:
-            half_sphere_points.append(point)
-    return np.array(half_sphere_points)
+    half_sphere_points = sphere_points[utils.side_points(plane, sphere_points) != side_point]
+    return half_sphere_points, plane, side_point
