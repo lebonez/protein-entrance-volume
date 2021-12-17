@@ -145,6 +145,7 @@ def average_distance(point, points):
     """
     return np.linalg.norm(points - point, axis=1).mean()
 
+
 def side_points(plane, points):
     """
     Finds which side a set of points lie on a plane. Returns a -1 or 1
@@ -159,6 +160,7 @@ def side_points(plane, points):
     unit_vectors = np.array(unit_vectors).T
     signs = np.sign(np.dot(unit_vectors, plane[1].reshape((3,1)))).flatten()
     return signs.astype(int)
+
 
 def side_point(plane, point):
     """
