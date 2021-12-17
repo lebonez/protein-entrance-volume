@@ -19,21 +19,45 @@ def parse_args():
     """
     Parse args
     """
-    parser = argparse.ArgumentParser(description="Parse pdb file to get protein entrance volume determined by inner and outer residues.", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-o', '--outer-residues', required=True, type=int, nargs='+', help="A list of three or more outer residues to define the initial entrance of the tunnel.")
-    parser.add_argument('-i', '--inner-residues', required=True, type=int, nargs='+', help="A list of three or more inner residues to define the desired ending location in tunnel.")
-    parser.add_argument('--no-outer', default=False, action='store_true', help="Don't use outer residues boundary hemisphere this is helpful if the outer residues shift positions alot.")
-    parser.add_argument('--no-inner', default=False, action='store_true', help="Don't use inner residues boundary hemisphere this is helpful if the inner residues shift positions alot.")
-    parser.add_argument('-r', '--probe-radius', default=1.4, type=float, help="Radius of the algorithm probe to define the inner surface of the cavity (default: %(default)s).")
-    parser.add_argument('-g', '--grid-size', default=0.2, type=float, help="The size of the grid to use to calculate the cavity inner surface (default: %(default)s).")
-    parser.add_argument('-R', '--resolution', default=4, type=float, help="Lower values decreases runtime and higher values for accuracy (default: %(default)s).")
-    parser.add_argument('-f', '--pdb-file', required=True, type=str, help="Path to the PDB file.")
-    parser.add_argument('-v', '--vertices-file', default="", type=str, help="""
-Output the vertices to file which file types depends on the file extension provided in this argument.
-    xyz: Outputs the vertices as a molecular xyz file with each vertices marked as an "X" atom and has volume as the comment line after number of atoms by far slowest file output.
-    csv: Vertices array is dumped to a file with "x,y,z" as header and each line containing a comma separated x,y,z coordinate.
-    txt: Vertices array is dumped to a txt file with first line containing volume of vertices and x y z coordinates space separated.
-    npz: Recommended if loading the vertices array back into numpy for post processing uses much less space and is faster.
+    parser = argparse.ArgumentParser(description="Parse pdb file to get "
+        "protein entrance volume determined by inner and outer residues.",
+        formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-o', '--outer-residues', required=True, type=int,
+        nargs='+', help="A list of three or more outer residues to define the "
+        "initial entrance of the tunnel.")
+    parser.add_argument('-i', '--inner-residues', required=True, type=int,
+        nargs='+', help="A list of three or more inner residues to define the "
+        "desired ending location in tunnel.")
+    parser.add_argument('--no-outer', default=False, action='store_true',
+        help="Don't use outer residues boundary hemisphere this is helpful if "
+        "the outer residues shift positions alot.")
+    parser.add_argument('--no-inner', default=False, action='store_true',
+        help="Don't use inner residues boundary hemisphere this is helpful if "
+        "the inner residues shift positions alot.")
+    parser.add_argument('-r', '--probe-radius', default=1.4, type=float,
+        help="Radius of the algorithm probe to define the inner surface of "
+        "the cavity (default: %(default)s).")
+    parser.add_argument('-g', '--grid-size', default=0.2, type=float,
+        help="The size of the grid to use to calculate the cavity inner "
+        "surface (default: %(default)s).")
+    parser.add_argument('-R', '--resolution', default=4, type=float,
+        help="Lower values decreases runtime and higher values for accuracy "
+        "(default: %(default)s).")
+    parser.add_argument('-f', '--pdb-file', required=True, type=str,
+        help="Path to the PDB file.")
+    parser.add_argument('-v', '--vertices-file', default="", type=str,
+        help="""
+Output the vertices to file which file types depends on the file extension
+provided in this argument.
+    xyz: Outputs the vertices as a molecular xyz file with each vertices
+         marked as an "X" atom and has volume as the comment line after number
+         of atoms by far slowest file output.
+    csv: Vertices array is dumped to a file with "x,y,z" as header and each
+         line containing a comma separated x,y,z coordinate.
+    txt: Vertices array is dumped to a txt file with first line containing
+         volume of vertices and x y z coordinates space separated.
+    npz: Recommended if loading the vertices array back into numpy for post
+         processing uses much less space and is faster.
     """)
     return parser.parse_args()
 
