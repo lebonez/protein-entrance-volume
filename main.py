@@ -188,7 +188,7 @@ def main():
         else:
             raise exception.InvalidFileExtension([".xyz", ".csv", ".txt", ".npz"])
     end = time_ns() - start
-    print("Took:", end*10**(-9), "s")
+    print("Took:", end * 10 ** (-9), "s")
 
 
 if __name__ == '__main__':
