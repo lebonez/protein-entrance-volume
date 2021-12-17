@@ -8,13 +8,16 @@ from numba.typed import Dict
 from numba import types
 from protein_entrance_volume import exception
 
+
 # Can't reference this type inside a numba compiled function.
 int_array = types.int64[:]
+
 
 # Set of components to generate an equation of directly adjacent coordinates.
 components = np.array(
     [[-1,  0,  0], [ 0, -1,  0], [ 0,  0, -1], [1, 0, 0], [0, 1, 0], [0, 0, 1]]
 )
+
 
 def connected_components(grid, starting_voxel, border_only=False):
     """
