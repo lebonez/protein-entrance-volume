@@ -107,10 +107,6 @@ def calculate_components(starting_index, eqn, grid, border_only):
             # queue. Also add the adjacent indices of the index to the value.
             if i not in seen and i not in queue:
                 queue[i] = ies
-    # Border only just returns indices if the value of indices shape was not
-    # six or on the border.
-    if border_only:
-        return was_out_of_bounds, np.array(list(seen)), np.array([k for k, v in seen.items() if not v])
     # Return all seen indices including ones not on the border.
     return was_out_of_bounds, np.array(list(seen)), np.array([k for k, v in seen.items() if not v])
 
