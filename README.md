@@ -13,7 +13,7 @@ inner and outer boundary half spheres (plane circle) by an angled varying radius
 can get pretty unorthodox in their locations and cause the half spheres to intersect.
 
 ### Installation
-Should work with most version 3 Pythons. Recommend Python 3.9 as of 12/17/2021 (Numba not working with higher versions).
+Should work with al python version 3.6 and above. Recommend Python 3.9 as of 12/17/2021 (Numba does not work with higher versions).
 
 Download or clone the repo:
 
