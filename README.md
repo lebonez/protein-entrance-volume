@@ -8,11 +8,11 @@ The above line determines the outer boundary which contains the volume if the in
 completely enclose the volume and is also required if no-inner and no-outer flags are used.
 This distance could and probably should be modified depending on the use case. I have a few theories that this distance
 should contain the inner and outer residue half sphere but not go too far beyond them to prevent weird artifacts.
-Could also be a good idea to completely rework the idea and make a quasi pill capsule shape by connecting the
-inner and outer boundary half spheres by an angled cylinder.
+Could also be a good idea to completely rework the idea and make a quasi-pill capsule shape by connecting the
+inner and outer boundary half spheres by an angled varying radius cylinder.
 
 ### Installation
-Should work with most version 3 Pythons. Recommend Python 3.9
+Should work with most version 3 Pythons. Recommend Python 3.9 as of 12/17/2021 (Numba not working with higher versions).
 
 Download or clone the repo:
 
