@@ -73,9 +73,7 @@ def main():
     # Create a larger outer spherical boundary set of faux spheres with radius
     # being the average distance from the centroid of all residues to the coords
     # of all residues.
-    # b_distance = utils.average_distance(atoms.arc, atoms.ar_coords)
-    b_furthest_coord = atoms.or_coords[utils.furthest_node(atoms.arc, atoms.or_coords)]
-    b_distance = np.linalg.norm(b_furthest_coord - atoms.arc)
+    b_distance = utils.average_distance(atoms.arc, atoms.ar_coords)
 
     # Calculate the optimal number of faux spheres so that the faux spheres are
     # within the probe_radius divided by the resolution to each other.
@@ -84,25 +82,43 @@ def main():
     # Generate the larger outer boundary sphere coords
     b_max = boundary.sphere(b_distance, atoms.arc, num_points=b_num_points)
 
-    # Copy points for creating a complete array of boundary coords
-    b_points = np.copy(b_max)
-
     # Same as above but for the outer and inner residues separately.
     o_distance = utils.average_distance(atoms.orc, atoms.or_coords)
     i_distance = utils.average_distance(atoms.irc, atoms.ir_coords)
-    # No outer means to not create the outer residue faux spheres boundary
     if not args.no_outer:
+        # No outer means to not create the outer residue faux spheres boundary
         o_num_points = utils.sphere_num_points(o_distance, args.probe_radius / resolution)
         # Outer residue boundary half spheres coords.
-        b_outer = boundary.half_sphere(atoms.or_coords, o_distance, atoms.orc, atoms.irc, num_points=o_num_points)
-        # Append to previous copied array
-        b_points = np.append(b_points, b_outer, axis=0)
-    # No inner means to not create the inner residue faux spheres boundary
+        b_outer, outer_plane, inner_side= boundary.half_sphere(atoms.or_coords, o_distance, atoms.orc, atoms.irc, num_points=o_num_points)
+        # Get all points for the outer max boundary that do not intersect with the outer
+        # residues half sphere
+        o_plane_filter = utils.side_points(outer_plane, b_max) != inner_side
+        o_radius_filter = np.linalg.norm(b_max - atoms.orc, axis=1) <= o_distance
+        o_filter = np.invert(np.logical_and(o_plane_filter, o_radius_filter))
     if not args.no_inner:
+        # No inner means to not create the inner residue faux spheres boundary
         i_num_points = utils.sphere_num_points(i_distance, args.probe_radius / resolution)
         # Inner residue boundary half spheres coords.
-        b_inner = boundary.half_sphere(atoms.ir_coords, i_distance, atoms.irc, atoms.orc, num_points=i_num_points)
-        # Append to previous copied array
+        b_inner, inner_plane, outer_side = boundary.half_sphere(atoms.ir_coords, i_distance, atoms.irc, atoms.orc, num_points=i_num_points)
+        # Get all points for the outer max boundary that do not intersect with the inner
+        # residues half sphere
+        i_plane_filter = utils.side_points(inner_plane, b_max) != outer_side
+        i_radius_filter = np.linalg.norm(b_max - atoms.irc, axis=1) <= i_distance
+        i_filter = np.invert(np.logical_and(i_plane_filter, i_radius_filter))
+
+    if not args.no_outer and not args.no_inner:
+        filter = np.logical_and(o_filter, i_filter)
+        b_points = b_max[filter]
+    elif not args.no_outer:
+        b_points = b_max[o_filter]
+    elif not args.no_inner:
+        b_points = b_max[i_filter]
+    else:
+        b_points = b_max
+
+    if not args.no_outer:
+        b_points = np.append(b_points, b_outer, axis=0)
+    if not args.no_inner:
         b_points = np.append(b_points, b_inner, axis=0)
 
     # Build a radii array that has same length as boundary points and set the radii to the probe_radius
@@ -112,26 +128,33 @@ def main():
     coords = np.append(mbr_coords, b_points, axis=0)
     radii = np.append(mbr_radii, b_radii, axis=0)
 
+    # Generate the SAS grid from spherical points and radii within the MBR.
+    grid = Grid.from_cartesian_spheres(coords, radii, grid_size=args.grid_size, fill_inside=True)
+
     # Find a starting point for the surface search that is on the center of the
     # surface of the outer residue half sphere..
-    # This is the most ideal location to start the search since it
-    # would be the actual beginning of the entrance.
+    # This is the most ideal location to start the connected components search
+    # since it would be the actual beginning of the entrance.
+
     # Best fit plane of the outer residue coords
     plane = utils.best_fit_plane(atoms.or_coords)
+
     # Find our orientation of the normal by determining the side the inner residue
     # centroid lies on and make sure the normal from the plane above points in the
     # opposite direction.
     opposing_side = utils.side_point(plane, atoms.irc)
+
     # Make sure the normal is not pointing at the opposing side if it is swap it.
+    normal = plane[1]
     if utils.side_point(plane, plane[1] + atoms.orc) == opposing_side:
         # Swap normal to point away from the irc if it wasn't already.
-        normal = plane[1] * -1
+        normal *= -1
+
     # Calculate the point using the distance to the outer residue half spheres
     # subtracted by the probe radius multiplied by the normal from above then
     # shifted to the outer residue centroid.
     starting_point = (o_distance - args.probe_radius) * normal + atoms.orc
-    # Generate the SAS grid from spherical points and radii within the MBR.
-    grid = Grid.from_cartesian_spheres(coords, radii, grid_size=args.grid_size, fill_inside=True)
+
     # Find a good starting voxel to do SAS search by starting at the starting
     # point that was calculated above and moving towards the orc.
     starting_voxel = grid.gridify_point(starting_point)
@@ -143,8 +166,8 @@ def main():
     # test_points.append(starting_point)
     while grid.grid[starting_voxel[0], starting_voxel[1], starting_voxel[2]]:
         # Calculate the point using the ith magnitude normal
-        point = starting_point + (i * normal)
-        # We are now too close to the outer residue centroid to consider any
+        point = starting_point + (i * normal) * args.grid_size
+        # Check if we are too close to the outer residue centroid to consider any
         # starting voxel valid so we raise custom exception here and user needs
         # to tune command line parameters.
         if np.linalg.norm(point - atoms.orc) < args.grid_size * 2:
@@ -156,36 +179,45 @@ def main():
 
     # Calculate the SAS volume nodes and SAS border nodes using connected_components
     nodes, sas_nodes = utils.connected_components(grid.grid, starting_voxel)
+
     # A beginning first voxel for calculating the probe extended grid using the first sas node.
     voxel = np.array(np.unravel_index(sas_nodes[0], grid.shape))
     # Build the initial grid using the first sas node voxel coordinate extended by the probe radius divided by grid size.
     volume_grid = rasterize.sphere(voxel, args.probe_radius / args.grid_size, np.zeros(grid.shape, dtype=bool), fill_inside=False)
     # flatten array for the subsequent calculations.
     volume_grid = volume_grid.flatten()
-    # Calculate the spherical 1D equation for the probe radius grid sphere
+    # Calculate the spherical 1D c-ordered equation for the probe radius grid sphere
     eqn = np.argwhere(volume_grid).flatten() - sas_nodes[0]
-    # Apply all of the spheres at the remaining SAS border nodes using the sphere equation above calculated
-    # using the first sas node voxel.
+    # Apply all of the spheres at the remaining SAS border nodes using the
+    # sphere equation above calculated using the first sas node voxel.
     volume_grid = utils.eqn_grid(sas_nodes[1:], eqn, volume_grid)
+
     # Set the SES nodes from the initial connected components run to true this fills any remaining holes
     # which is faster then any binary fill method from other libraries.
     volume_grid[nodes] = True
+
     # Build the SAS volume grid object which includes the center (non-border) voxels as well
     # Note: it uses the previous grid zero shift attribute from the first atom coordinate based grid.
     grid = Grid(volume_grid.reshape(grid.shape), zero_shift=grid.zero_shift, grid_size=args.grid_size)
+
     # Calculate the volume by counting true values in the above grid and multiplying by grid size cubed.
     volume_amount = np.count_nonzero(grid.grid) * (args.grid_size ** 3)
+
     # Print out the volume.
     print("Volume: {} Å³".format(volume_amount))
+
+    end = time_ns() - start
+    print("Took:", end * 10 ** (-9), "s")
 
     if args.vertices_file:
         # Run connected components on the volume grid to get SES border nodes for file generation
         _, ses_nodes = utils.connected_components(np.invert(grid.grid), starting_voxel, border_only=True)
+
         # Calculate center of voxels then scale and shift them back to the original atom coordinates system.
         verts = (np.array(np.unravel_index(ses_nodes, grid.shape)).T + 0.5) * args.grid_size + grid.zero_shift
-        # visualization.matplotlib_points(verts)
+        visualization.matplotlib_points(b_max[filter], b_inner, b_outer)
+
         if args.vertices_file.endswith(".xyz"):
-            # Convert SES nodes to coordinates in the original atom coordinate system.
             # Generate an xyz file with atoms called X by far the slowest.
             with open(args.vertices_file, 'w+', encoding='utf-8') as vertices_file:
                 vertices_file.write("{}\nVolume: {} Å³\n".format(str(verts.shape[0]), volume_amount))
@@ -203,9 +235,6 @@ def main():
             np.savez_compressed(args.vertices_file, verts)
         else:
             raise exception.InvalidFileExtension([".xyz", ".csv", ".txt", ".npz"])
-
-    end = time_ns() - start
-    print("Took:", end * 10 ** (-9), "s")
 
 
 if __name__ == '__main__':
