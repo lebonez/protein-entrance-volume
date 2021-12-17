@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 def matplotlib_points(*points):
     """
     Simple matplotlib function to plot any number of arrays of cartesian
-    (x,y,z) points.
+    (x,y,z) points each will be colored different by default.
     """
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
