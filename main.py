@@ -12,6 +12,7 @@ from protein_entrance_volume import boundary
 from protein_entrance_volume import rasterize
 from protein_entrance_volume import utils
 from protein_entrance_volume import exception
+from protein_entrance_volume import visualization
 
 
 def parse_args():
@@ -72,7 +73,9 @@ def main():
     # Create a larger outer spherical boundary set of faux spheres with radius
     # being the average distance from the centroid of all residues to the coords
     # of all residues.
-    b_distance = utils.average_distance(atoms.arc, atoms.ar_coords)
+    # b_distance = utils.average_distance(atoms.arc, atoms.ar_coords)
+    b_furthest_coord = atoms.or_coords[utils.furthest_node(atoms.arc, atoms.or_coords)]
+    b_distance = np.linalg.norm(b_furthest_coord - atoms.arc)
 
     # Calculate the optimal number of faux spheres so that the faux spheres are
     # within the probe_radius divided by the resolution to each other.
@@ -172,6 +175,7 @@ def main():
         # Run connected components on the volume grid to get SES border nodes for file generation
         _, ses_nodes = utils.connected_components(np.invert(grid.grid), starting_voxel, border_only=True)
         verts = np.array(np.unravel_index(ses_nodes, grid.shape)).T * args.grid_size + grid.zero_shift
+        # visualization.matplotlib_points(verts)
         if args.vertices_file.endswith(".xyz"):
             # Convert SES nodes to coordinates in the original atom coordinate system.
             # Generate an xyz file with atoms called X.

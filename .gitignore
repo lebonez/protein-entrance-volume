@@ -6,3 +6,4 @@ plot.*
 *.csv
 *.txt
 *.npz
+!requirements.txt
