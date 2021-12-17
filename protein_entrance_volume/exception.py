@@ -4,7 +4,7 @@ Email: miwalls@siue.edu
 """
 class OutOfBounds(Exception):
     """
-    Error for if the connected components search ends up out of c-ordere 1D
+    Error for if the connected components search ends up out of c-ordered 1D
     boolean array bounds.
     """
     def __init__(self):
