@@ -114,7 +114,7 @@ def calculate_components(starting_index, eqn, grid, border_only):
 @njit(parallel=True, nogil=True, cache=True)
 def eqn_grid(nodes, eqn, grid):
     """
-    This function takes a 1D boolean grid applies an eqn to
+    This function takes a 1D boolean grid and applies an eqn to
     every node in parallel (haven't found a way to do this without numba that
     is as fast.)
     """
@@ -242,13 +242,13 @@ def sphere_num_points(radius, distance):
     Calculate the optimum number of points given the radius of sphere and the
     distance between the points on that sphere.
     """
-    golden_ratio = 4 * np.pi / (1 + np.sqrt(5))
+    ratio = np.cos(4 * np.pi / (1 + np.sqrt(5)))
     r2 = radius ** 2
     d2 = distance ** 2
     # solve for N, d = r * sqrt((cos(b)*sqrt(6/N-9/N^2)-cos(a)*sqrt(2/N-1/N^2))^2+(sin(b)*sqrt(6/N-9/N^2)-sin(a)*sqrt(2/N-1/N^2))^2+4/N^2)
     # This is the approximation of the ugly equation above. 1.85 gives a very
     # close value to the true N compared to using a brute force while loop method.
-    return np.int64(-1.85 * (4 * np.sqrt(3) * r2 * np.cos(golden_ratio) - 2 * r2) / d2)
+    return np.int64(-1.85 * (4 * np.sqrt(3) * r2 * ratio - 2 * r2) / d2)
 
 
 def generate_sphere_points(num_points=100):

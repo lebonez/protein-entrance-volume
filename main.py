@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument('-f', '--pdb-file', required=True, type=str, help="Path to the PDB file.")
     parser.add_argument('-v', '--vertices-file', default="", type=str, help="""
 Output the vertices to file which file types depends on the file extension provided in this argument.
-    xyz: Outputs the vertices as a molecular xyz file with each vertices marked as an "X" atom and has volume as the comment line after number of atoms.
+    xyz: Outputs the vertices as a molecular xyz file with each vertices marked as an "X" atom and has volume as the comment line after number of atoms by far slowest file output.
     csv: Vertices array is dumped to a file with "x,y,z" as header and each line containing a comma separated x,y,z coordinate.
     txt: Vertices array is dumped to a txt file with first line containing volume of vertices and x y z coordinates space separated.
     npz: Recommended if loading the vertices array back into numpy for post processing uses much less space and is faster.
@@ -156,36 +156,43 @@ def main():
 
     # Calculate the SAS volume nodes and SAS border nodes using connected_components
     nodes, sas_nodes = utils.connected_components(grid.grid, starting_voxel)
-
-    # Rasterize an example sphere on the same grid as above at the center of the grid
-    single_sphere = rasterize.sphere(np.int64(np.array(grid.shape) / 2), args.probe_radius / args.grid_size, np.zeros(grid.shape, dtype=bool), fill_inside=False)
-    # Calculate the equation for the example rasterized sphere
-    eqn = np.where(single_sphere.flatten())[0] - np.ravel_multi_index(np.int64(np.array(grid.shape) / 2), grid.shape)
-    # Apply all of the spheres at every SAS border node.
-    volume_grid = utils.eqn_grid(sas_nodes, eqn, np.zeros(np.prod(grid.shape), dtype=bool))
-    # Set the nodes from the previous connected components to true.
+    # A beginning first voxel for calculating the probe extended grid using the first sas node.
+    voxel = np.array(np.unravel_index(sas_nodes[0], grid.shape))
+    # Build the initial grid using the first sas node voxel coordinate extended by the probe radius divided by grid size.
+    volume_grid = rasterize.sphere(voxel, args.probe_radius / args.grid_size, np.zeros(grid.shape, dtype=bool), fill_inside=False)
+    # flatten array for the subsequent calculations.
+    volume_grid = volume_grid.flatten()
+    # Calculate the spherical 1D equation for the probe radius grid sphere
+    eqn = np.argwhere(volume_grid).flatten() - sas_nodes[0]
+    # Apply all of the spheres at the remaining SAS border nodes using the sphere equation above calculated
+    # using the first sas node voxel.
+    volume_grid = utils.eqn_grid(sas_nodes[1:], eqn, volume_grid)
+    # Set the SES nodes from the initial connected components run to true this fills any remaining holes
+    # which is faster then any binary fill method from other libraries.
     volume_grid[nodes] = True
-    # Build the volume grid object
+    # Build the SAS volume grid object which includes the center (non-border) voxels as well
+    # Note: it uses the previous grid zero shift attribute from the first atom coordinate based grid.
     grid = Grid(volume_grid.reshape(grid.shape), zero_shift=grid.zero_shift, grid_size=args.grid_size)
-    # Calculate the volume.
+    # Calculate the volume by counting true values in the above grid and multiplying by grid size cubed.
     volume_amount = np.count_nonzero(grid.grid) * (args.grid_size ** 3)
+    # Print out the volume.
     print("Volume: {} Å³".format(volume_amount))
 
     if args.vertices_file:
         # Run connected components on the volume grid to get SES border nodes for file generation
         _, ses_nodes = utils.connected_components(np.invert(grid.grid), starting_voxel, border_only=True)
-        # Calculate center of voxels then scale and shift them back to the original atom coordinate system.
+        # Calculate center of voxels then scale and shift them back to the original atom coordinates system.
         verts = (np.array(np.unravel_index(ses_nodes, grid.shape)).T + 0.5) * args.grid_size + grid.zero_shift
         # visualization.matplotlib_points(verts)
         if args.vertices_file.endswith(".xyz"):
             # Convert SES nodes to coordinates in the original atom coordinate system.
-            # Generate an xyz file with atoms called X.
+            # Generate an xyz file with atoms called X by far the slowest.
             with open(args.vertices_file, 'w+', encoding='utf-8') as vertices_file:
                 vertices_file.write("{}\nVolume: {} Å³\n".format(str(verts.shape[0]), volume_amount))
                 for vert in verts:
                     vertices_file.write("X {} {} {}\n".format(*list(vert)))
         elif args.vertices_file.endswith(".csv"):
-            # CSV file with one vertices x,y,z per row
+            # CSV file with one vertices x,y,z per row and x,y,z header
             np.savetxt(args.vertices_file, verts, header="x,y,z", comments="", delimiter=",")
         elif args.vertices_file.endswith(".txt"):
             # Dump vertices and volume to a space separated file
