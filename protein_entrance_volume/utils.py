@@ -131,7 +131,8 @@ def average_distance(point, points):
 
 def side_points(plane, points):
     """
-    Finds which side a point lies on a plane. Returns a -1 or 1.
+    Finds which side a set of points lie on a plane. Returns a -1 or 1
+    depending on the side the points are on.
     Plane should be [centroid, normal].
     """
     side_vectors = points - plane[0]
@@ -145,7 +146,8 @@ def side_points(plane, points):
 
 def side_point(plane, point):
     """
-    Finds which side a point lies on a plane. Returns a -1 or 1.
+    Finds which side a point lies on a plane. Returns a -1 or 1 depending on
+    the side the point is on.
     Plane should be [centroid, normal].
     """
     side_vector = point - plane[0]

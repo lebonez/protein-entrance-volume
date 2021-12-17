@@ -90,6 +90,7 @@ def main():
     # Same as above but for the outer and inner residues separately.
     o_distance = utils.average_distance(atoms.orc, atoms.or_coords)
     i_distance = utils.average_distance(atoms.irc, atoms.ir_coords)
+
     # No outer means to not create the outer residue faux spheres boundary
     if not args.no_outer:
         o_num_points = utils.sphere_num_points(o_distance, args.probe_radius / resolution)
@@ -208,8 +209,8 @@ def main():
             np.savez_compressed(args.vertices_file, verts)
         else:
             raise exception.InvalidFileExtension([".xyz", ".csv", ".txt", ".npz"])
-            
-        visualization.matplotlib_points(verts)
+
+        # visualization.matplotlib_points(verts)
 
 
 if __name__ == '__main__':

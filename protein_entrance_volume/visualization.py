@@ -4,6 +4,10 @@ from mpl_toolkits import mplot3d
 
 
 def matplotlib_points(*points):
+    """
+    Simple matplotlib function to plot any number of arrays of cartesian
+    (x,y,z) points.
+    """
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     for p in points:
