@@ -6,7 +6,6 @@ import numpy as np
 from numba import njit, prange
 from numba.typed import Dict
 from numba import types
-from protein_entrance_volume import rasterize
 from protein_entrance_volume import exception
 
 # Can't reference this type inside a numba compiled function.
@@ -154,9 +153,9 @@ def best_fit_plane(points):
     centroid = np.mean(points, axis=0)
     points_centered = (points - centroid)
     # Get left singular matrix of the SVD of points centered.
-    u = np.linalg.svd(points_centered.T)[0]
+    left_matrix = np.linalg.svd(points_centered.T)[0]
     # Right most column of left singular matrix is normal of best fit plane.
-    normal = u[:, 2]
+    normal = left_matrix[:, 2]
     # Return centroid and the normal
     return centroid, normal
 
@@ -247,31 +246,13 @@ def sphere_num_points(radius, distance):
     Calculate the optimum number of points given the radius of sphere and the
     distance between the points on that sphere.
     """
-    golden_ratio = (1 + 5 ** 0.5) / 2
-    n1 = 0.5
-    n2 = 1.5
-    theta1 = 2 * np.pi * n1 / golden_ratio
-    theta2 = 2 * np.pi * n2 / golden_ratio
-
-    # Initialize d with size larger than distance
-    d = distance * 2
-    N = 2
-    # Loop until we find an N number of points that result in evenly spaced
-    # number of points that are d (distance) less than distance.
-    while True:
-        phi1 = np.arccos(1 - (2 * n1) / N)
-        phi2 = np.arccos(1 - (2 * n2) / N)
-        x1 = (np.cos(theta1) * np.sin(phi1))
-        x2 = (np.cos(theta2) * np.sin(phi2))
-        y1 = (np.sin(theta1) * np.sin(phi1))
-        y2 = (np.sin(theta2) * np.sin(phi2))
-        z1 = (np.cos(phi1))
-        z2 = (np.cos(phi2))
-        d = radius * np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
-        if distance > d:
-            break
-        N += 1
-    return N
+    golden_ratio = 4 * np.pi / (1 + np.sqrt(5))
+    r2 = radius ** 2
+    d2 = distance ** 2
+    # solve for N, d = r * sqrt((cos(b)*sqrt(6/N-9/N^2)-cos(a)*sqrt(2/N-1/N^2))^2+(sin(b)*sqrt(6/N-9/N^2)-sin(a)*sqrt(2/N-1/N^2))^2+4/N^2)
+    # This is the approximation of the ugly equation above. 1.85 gives a very
+    # close value to the true N compared to using a brute force while loop method.
+    return np.int64(-1.85 * (4 * np.sqrt(3) * r2 * np.cos(golden_ratio) - 2 * r2) / d2)
 
 
 def generate_sphere_points(num_points=100):

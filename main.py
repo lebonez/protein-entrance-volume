@@ -12,7 +12,6 @@ from protein_entrance_volume import boundary
 from protein_entrance_volume import rasterize
 from protein_entrance_volume import utils
 from protein_entrance_volume import exception
-from protein_entrance_volume import visualization
 
 
 def parse_args():
@@ -25,7 +24,7 @@ def parse_args():
     parser.add_argument('--no-outer', default=False, action='store_true', help="Don't use outer residues boundary this is helpful if the outer residues shift positions alot.")
     parser.add_argument('--no-inner', default=False, action='store_true', help="Don't use inner residues boundary this is helpful if the inner residues shift positions alot.")
     parser.add_argument('-r', '--probe-radius', default=1.4, type=float, help="Radius of the algorithm probe to define the inner surface of the cavity (default: %(default)s).")
-    parser.add_argument('-g', '--grid-size', default=0.5, type=float, help="The size of the grid to use to calculate the cavity inner surface (default: %(default)s).")
+    parser.add_argument('-g', '--grid-size', default=0.2, type=float, help="The size of the grid to use to calculate the cavity inner surface (default: %(default)s).")
     parser.add_argument('-R', '--resolution', default=4, type=float, help="Lower values decreases runtime and higher values for accuracy default: %(default)s).")
     parser.add_argument('-f', '--pdb-file', required=True, type=str, help="Path to the PDB file.")
     parser.add_argument('-v', '--vertices-file', default="", type=str, help="""
@@ -78,6 +77,7 @@ def main():
     # Calculate the optimal number of faux spheres so that the faux spheres are
     # within the probe_radius divided by the resolution to each other.
     b_num_points = utils.sphere_num_points(b_distance, args.probe_radius / resolution)
+
     # Generate the larger outer boundary sphere coords
     b_max = boundary.sphere(b_distance, atoms.arc, num_points=b_num_points)
 
@@ -141,7 +141,7 @@ def main():
     while grid.grid[starting_voxel[0], starting_voxel[1], starting_voxel[2]]:
         # Calculate the point using the ith magnitude normal
         point = starting_point + (i * normal)
-        # We are now to close to the outer residue centroid to consider any
+        # We are now too close to the outer residue centroid to consider any
         # starting voxel valid so we raise custom exception here and user needs
         # to tune command line parameters.
         if np.linalg.norm(point - atoms.orc) < args.grid_size * 2:
@@ -154,7 +154,7 @@ def main():
     # Calculate the SAS volume nodes and SAS border nodes using connected_components
     nodes, sas_nodes = utils.connected_components(grid.grid, starting_voxel)
 
-    # Rasterize an example sphere on the same grid as above
+    # Rasterize an example sphere on the same grid as above at the center of the grid
     single_sphere = rasterize.sphere(np.int64(np.array(grid.shape) / 2), args.probe_radius / args.grid_size, np.zeros(grid.shape, dtype=bool), fill_inside=False)
     # Calculate the equation for the example rasterized sphere
     eqn = np.where(single_sphere.flatten())[0] - np.ravel_multi_index(np.int64(np.array(grid.shape) / 2), grid.shape)
@@ -162,21 +162,23 @@ def main():
     volume_grid = utils.eqn_grid(sas_nodes, eqn, np.zeros(np.prod(grid.shape), dtype=bool))
     # Set the nodes from the previous connected components to true.
     volume_grid[nodes] = True
+    # Build the volume grid object
+    grid = Grid(volume_grid.reshape(grid.shape), zero_shift=grid.zero_shift, grid_size=args.grid_size)
     # Calculate the volume.
-    volume_amount = np.count_nonzero(volume_grid) * (args.grid_size ** 3)
+    volume_amount = np.count_nonzero(grid.grid) * (args.grid_size ** 3)
     print("Volume: {} Å³".format(volume_amount))
 
     if args.vertices_file:
         # Run connected components on the volume grid to get SES border nodes for file generation
-        _, ses_nodes = utils.connected_components(np.invert(volume_grid.reshape(grid.shape)), starting_voxel, border_only=True)
+        _, ses_nodes = utils.connected_components(np.invert(grid.grid), starting_voxel, border_only=True)
         verts = np.array(np.unravel_index(ses_nodes, grid.shape)).T * args.grid_size + grid.zero_shift
         # Convert SES nodes to coordinates in the original atom coordinate system.
         # Generate an xyz file with atoms called X.
         if args.vertices_file.endswith(".xyz"):
-            with open(args.vertices_file, 'w+') as vf:
-                vf.write("{}\nVolume: {} Å³\n".format(str(verts.shape[0]), volume_amount))
-                for l in verts:
-                    vf.write("X {} {} {}\n".format(*list(l)))
+            with open(args.vertices_file, 'w+', encoding='utf-8') as vertices_file:
+                vertices_file.write("{}\nVolume: {} Å³\n".format(str(verts.shape[0]), volume_amount))
+                for vert in verts:
+                    vertices_file.write("X {} {} {}\n".format(*list(vert)))
         elif args.vertices_file.endswith(".csv"):
             np.savetxt(args.vertices_file, verts, header="x,y,z", comments="", delimiter=",")
         elif args.vertices_file.endswith(".txt"):
@@ -185,7 +187,6 @@ def main():
             np.savez_compressed(args.vertices_file, verts)
         else:
             raise exception.InvalidFileExtension([".xyz", ".csv", ".txt", ".npz"])
-
     end = time_ns() - start
     print("Took:", end*10**(-9), "s")
 

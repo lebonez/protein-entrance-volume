@@ -34,7 +34,7 @@ class Atoms:
         """
         String function just print the dataframe.
         """
-        return self._df
+        return str(self._df)
 
     @property
     def coords(self):
@@ -148,10 +148,10 @@ class Atoms:
         distance += (self.radii.max() + extension) * 2
 
         # Calculate minimum and maximum x, y, z coordinates both as an array
-        min = self.arc - distance
-        max = self.arc + distance
+        atoms_min = self.arc - distance
+        atoms_max = self.arc + distance
 
         # Calculate the indices within the mbr.
-        indices = utils.inside_mbr(self.coords, min, max)
+        indices = utils.inside_mbr(self.coords, atoms_min, atoms_max)
         # Return filtered coordinates, radii, and mbr radius (distance)
         return self.coords[indices], self.radii[indices]
