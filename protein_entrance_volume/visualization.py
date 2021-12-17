@@ -1,3 +1,7 @@
+"""
+Created by: Mitchell Walls
+Email: miwalls@siue.edu
+"""
 import matplotlib.pyplot as plt
 
 
