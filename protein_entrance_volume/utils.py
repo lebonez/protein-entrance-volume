@@ -275,7 +275,7 @@ def generate_sphere_points(num_points=100):
     indices = np.arange(0, num_points, dtype=float) + 0.5
     # Calculate all of phi values for every index.
     phi = np.arccos(1 - 2 * indices / num_points)
-    # Golden ratio to generate evenly spaced points in a along surface of
+    # Golden ratio to generate evenly spaced points along a surface of
     # sphere.
     golden_ratio = (1 + 5 ** 0.5) / 2
     # Theta calculated using golden ratio and indices array.
