@@ -3,7 +3,7 @@
 This is an algorithm ran by command line that calculates the volume of an entrance cavity using user provided boundaries determined by residue ID.
 
 ### Important note
-https://github.com/lebonez/protein-entrance-volume/blob/7ffb24403c27ef46dcde020156f3250dc3557bf0/main.py#L75
+https://github.com/lebonez/protein-entrance-volume/blob/main/main.py#L76
 The above line determines the outer boundary which contains the volume if the inner and outer residue half spheres do not
 completely enclose the volume and is also required if no-inner and no-outer flags are used.
 This distance could and probably should be modified depending on the use case. I have a few theories that this distance
