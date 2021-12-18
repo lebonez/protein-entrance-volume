@@ -5,11 +5,16 @@ Email: miwalls@siue.edu
 from protein_entrance_volume import utils
 
 
-def sphere(radius, centroid, num_points=1000):
+def sphere(centroid, coords, distance):
     """
     Generates a sphere using the unit sphere from utils scaling to radius and
-    moving to centroid.
+    moving to centroid. Radius is calculated using the average distance
+    between the centroid of the spheres and the coordinates near the outer
+    bounds of the sphere. Number of points is calculated using the radius
+    described above and the ideal "distance" between points.
     """
+    radius = utils.average_distance(centroid, coords)
+    num_points = utils.sphere_num_points(radius, distance)
     unit_sphere = utils.generate_sphere_points(num_points=num_points)
     return unit_sphere * radius + centroid
 

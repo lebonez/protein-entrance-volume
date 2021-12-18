@@ -84,61 +84,45 @@ def main():
     # the mbr calculated by the inner and outer residue atoms.
     atoms_mbr = atoms.residues_mbr(extension=args.probe_radius)
 
-    # The coordinates of atoms inside the MBR
-    mbr_coords = atoms_mbr[0]
-
-    # Increase the radii of the MBR atoms by probe size for SAS calculation.
-    mbr_radii = atoms_mbr[1] + args.probe_radius
-
-    # Create a larger outer spherical boundary set of faux spheres with radius
-    # being the average distance from the centroid of all residues to the
-    # coords of all residues.
-    b_distance = utils.average_distance(atoms.arc, atoms.ar_coords)
-    # b_furthest_coord = atoms.or_coords[
-    #     utils.furthest_node(atoms.arc, atoms.or_coords)
-    # ]
-    # b_distance = np.linalg.norm(b_furthest_coord - atoms.arc)
-
-    # Calculate the optimal number of faux spheres so that the faux spheres are
-    # within the probe_radius divided by the resolution to each other.
-    b_num_points = utils.sphere_num_points(
-        b_distance, args.probe_radius / args.resolution
-    )
+    points_distance = args.probe_radius / args.resolution
 
     # Generate the larger outer boundary sphere coords
-    b_max = boundary.sphere(b_distance, atoms.arc, num_points=b_num_points)
-
-    # Copy points for creating a complete array of boundary coords
-    b_points = np.copy(b_max)
-
-    # Same as above but for the outer and inner residues separately.
-    o_distance = utils.average_distance(atoms.orc, atoms.or_coords)
-    i_distance = utils.average_distance(atoms.irc, atoms.ir_coords)
+    b_points = boundary.sphere(atoms.arc, atoms.ar_coords, points_distance)
 
     # No outer means to not create the outer residue faux spheres boundary
     if not args.no_outer:
-        o_num_points = utils.sphere_num_points(
-            o_distance, args.probe_radius / args.resolution
+        # Outer residue boundary half spheres coords same explanations as
+        # above except for only generates on the outer side of the best fit
+        # plane of the outer residue atoms.
+        o_distance = utils.average_distance(atoms.orc, atoms.or_coords)
+        b_points = np.append(
+            b_points,
+            boundary.half_sphere(
+                atoms.or_coords, o_distance, atoms.orc, atoms.irc,
+                num_points=utils.sphere_num_points(
+                    o_distance,
+                    args.probe_radius / args.resolution
+                )
+            ),
+            axis=0
         )
-        # Outer residue boundary half spheres coords.
-        b_outer = boundary.half_sphere(
-            atoms.or_coords, o_distance, atoms.orc, atoms.irc,
-            num_points=o_num_points
-        )
-        # Append to previous copied array
-        b_points = np.append(b_points, b_outer, axis=0)
     # No inner means to not create the inner residue faux spheres boundary
     if not args.no_inner:
-        i_num_points = utils.sphere_num_points(
-            i_distance, args.probe_radius / args.resolution
+        # Inner residue boundary half spheres coords same explanations as
+        # above except for only generates on the outer side of the best fit
+        # plane of the inner residue atoms.
+        i_distance = utils.average_distance(atoms.irc, atoms.ir_coords)
+        b_points = np.append(
+            b_points,
+            boundary.half_sphere(
+                atoms.ir_coords, i_distance, atoms.irc, atoms.orc,
+                num_points=utils.sphere_num_points(
+                    i_distance,
+                    args.probe_radius / args.resolution
+                )
+            ),
+            axis=0
         )
-        # Inner residue boundary half spheres coords.
-        b_inner = boundary.half_sphere(
-            atoms.ir_coords, i_distance, atoms.irc, atoms.orc,
-            num_points=i_num_points
-        )
-        # Append to previous copied array
-        b_points = np.append(b_points, b_inner, axis=0)
 
     # Build a radii array that has same length as boundary points and set the
     # radii to the probe_radius. This allows the SAS to directly translate to
@@ -147,8 +131,8 @@ def main():
 
     # Combine all of the boundary coords and radii with the mbr coords and
     # radii.
-    coords = np.append(mbr_coords, b_points, axis=0)
-    radii = np.append(mbr_radii, b_radii, axis=0)
+    coords = np.append(atoms_mbr[0], b_points, axis=0)
+    radii = np.append(atoms_mbr[1] + args.probe_radius, b_radii, axis=0)
 
     # Find a starting point for the surface search that is on the center of the
     # surface of the outer residue half sphere.This is the most ideal location
