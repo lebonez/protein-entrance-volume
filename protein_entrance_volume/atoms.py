@@ -68,8 +68,7 @@ class Atoms:
         """
         if self._or_coords is None:
             self._or_coords = self._df[
-                self._df['outer_residue']][['x', 'y', 'z']
-            ].to_numpy()
+                self._df['outer_residue']][['x', 'y', 'z']].to_numpy()
         return self._or_coords
 
     @property
@@ -135,12 +134,15 @@ class Atoms:
             residue_id = residue.get_full_id()[3][1]
             for atom in residue.get_atoms():
                 x_coord, y_coord, z_coord = [*atom.get_coord()]
+                radius = _get_atom_radius(atom)
+                if radius < 1.0:
+                    radius = 1.0
                 atoms.append(
                     dict(
                         id=atom.fullname,
-                        x = x_coord, y = y_coord, z = z_coord,
-                        radius=_get_atom_radius(atom) if \
-                            _get_atom_radius(atom) > 1.0 else 1.0,
+                        x=x_coord, y=y_coord, z=z_coord,
+                        radius=_get_atom_radius(atom) if
+                        _get_atom_radius(atom) > 1.0 else 1.0,
                         residue_id=residue_id,
                         outer_residue=residue_id in outer_residues,
                         inner_residue=residue_id in inner_residues,

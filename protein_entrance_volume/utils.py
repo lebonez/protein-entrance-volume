@@ -14,9 +14,8 @@ int_array = types.int64[:]
 
 
 # Set of components to generate an equation of directly adjacent coordinates.
-components = np.array(
-    [[-1,  0,  0], [ 0, -1,  0], [ 0,  0, -1], [1, 0, 0], [0, 1, 0], [0, 0, 1]]
-)
+components = np.array([[-1,  0,  0], [0, -1,  0], [0,  0, -1], [1, 0, 0],
+                       [0, 1, 0], [0, 0, 1]])
 
 
 def connected_components(grid, starting_voxel, border_only=False):
@@ -71,8 +70,8 @@ def calculate_components(starting_index, eqn, grid, border_only):
         # greater than limit.
         if (indices > limit).any() or (indices < 0).any():
             return (was_out_of_bounds, np.array(list(seen)),
-                np.array([k for k, v in seen.items() if not v])
-            )
+                    np.array([k for k, v in seen.items() if not v]))
+
         # Filter the indices to include only ones that are False on the boolean
         # grid.
         ies = indices[~grid[indices]]
@@ -105,8 +104,8 @@ def calculate_components(starting_index, eqn, grid, border_only):
             if (ies > limit).any() or (ies < 0).any():
                 was_out_of_bounds = True
                 return (was_out_of_bounds, np.array(list(seen)),
-                    np.array([k for k, v in seen.items() if not v])
-                )
+                        np.array([k for k, v in seen.items() if not v]))
+
             # Get adjacents that are False on the grid.
             ies = ies[~grid[ies]]
             # Most cases border only is better but sometimes marking non-border
@@ -123,8 +122,7 @@ def calculate_components(starting_index, eqn, grid, border_only):
                 queue[i] = ies
     # Return all seen indices including ones not on the border.
     return (was_out_of_bounds, np.array(list(seen)),
-        np.array([k for k, v in seen.items() if not v])
-    )
+            np.array([k for k, v in seen.items() if not v]))
 
 
 @njit(parallel=True, nogil=True, cache=True)
@@ -158,7 +156,7 @@ def side_points(plane, points):
     for i in range(3):
         unit_vectors.append(np.divide(side_vectors.T[i], magnitudes))
     unit_vectors = np.array(unit_vectors).T
-    signs = np.sign(np.dot(unit_vectors, plane[1].reshape((3,1)))).flatten()
+    signs = np.sign(np.dot(unit_vectors, plane[1].reshape((3, 1)))).flatten()
     return signs.astype(int)
 
 
@@ -280,7 +278,8 @@ def sphere_num_points(radius, distance):
     ratio = np.cos(4 * np.pi / (1 + np.sqrt(5)))
     radius2 = radius ** 2
     distance2 = distance ** 2
-    # solve for N, d = r * sqrt((cos(b)*sqrt(6/N-9/N^2)-cos(a)*sqrt(2/N-1/N^2))^2+(sin(b)*sqrt(6/N-9/N^2)-sin(a)*sqrt(2/N-1/N^2))^2+4/N^2)
+    # solve for N, d = r * sqrt((cos(b)*sqrt(6/N-9/N^2)-cos(a)*sqrt(
+    # 2/N-1/N^2))^2+(sin(b)*sqrt(6/N-9/N^2)-sin(a)*sqrt(2/N-1/N^2))^2+4/N^2)
     # This is the approximation of the ugly equation above. 1.85 gives a very
     # close value to the true N compared to using a brute force while loop
     # method.

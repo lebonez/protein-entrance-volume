@@ -8,8 +8,8 @@ from protein_entrance_volume import exception
 
 def vertices_file(file, verts):
     """
-    Takes a filename string and a verts array and dumps the verts to file depending
-    on the file extension.
+    Takes a filename string and a verts array and dumps the verts to file
+    depending on the file extension.
     """
     if file.endswith(".xyz"):
         # Convert SES nodes to coordinates in the original atom coordinate

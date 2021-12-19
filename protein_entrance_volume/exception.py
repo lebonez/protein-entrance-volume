@@ -2,6 +2,8 @@
 Created by: Mitchell Walls
 Email: miwalls@siue.edu
 """
+
+
 class OutOfBounds(Exception):
     """
     Error for if the connected components search ends up out of c-ordered 1D
@@ -9,11 +11,11 @@ class OutOfBounds(Exception):
     """
     def __init__(self):
         self.message = \
-        """
-        Error: connected components algorithm ended up out of bounds. Typically
-        changing grid or probe size can help this. Double check your residue
-        IDs as well.
-        """
+            """
+            Error: connected components algorithm ended up out of bounds.
+            Typically changing grid or probe size can help this. Double check
+            your residue IDs as well.
+            """
         super().__init__(self.message)
 
 
@@ -24,11 +26,11 @@ class StartingVoxelNotFound(Exception):
     """
     def __init__(self):
         self.message = \
-        """
-        Error: Starting voxel was not found for the connected component search.
-        Typically changing grid or probe size can help this. Double check your
-        residue IDs as well.
-        """
+            """
+            Error: Starting voxel was not found for the connected component
+            search. Typically changing grid or probe size can help this. Double
+            check your residue IDs as well.
+            """
         super().__init__(self.message)
 
 
@@ -38,10 +40,10 @@ class InvalidFileExtension(Exception):
     """
     def __init__(self, extensions):
         self.message = \
-        f"""
-        Error: the file extension must be one of:
-        ({(', ').join(extensions)}).
-        """
+            f"""
+            Error: the file extension must be one of:
+            ({(', ').join(extensions)}).
+            """
         super().__init__(self.message)
 
 
@@ -51,8 +53,8 @@ class InvalidPlotType(Exception):
     """
     def __init__(self, plot_types):
         self.message = \
-        f"""
-        Error: the visualization plot type must be one of:
-        ({(', ').join(plot_types)}).
-        """
+            f"""
+            Error: the visualization plot type must be one of:
+            ({(', ').join(plot_types)}).
+            """
         super().__init__(self.message)

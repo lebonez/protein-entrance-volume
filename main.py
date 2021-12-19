@@ -96,9 +96,11 @@ def main():
 
     # Reduce computation complexity for the grid by only using spheres within
     # the mbr calculated by the inner and outer residue atoms.
-
     atoms_mbr = atoms.residues_mbr(extension=args.probe_radius)
 
+    # how far should each faux sphere be on the boundary hemispheres and
+    # sphere. Smaller distance make a slight difference in accuracy but increases
+    # computation time significantly.
     points_distance = args.probe_radius / args.resolution
 
     # Generate the larger outer boundary sphere coords
@@ -110,16 +112,16 @@ def main():
         # above except for only generates on the outer side of the best fit
         # plane of the outer residue atoms.
         o_hsphere = boundary.Hemisphere(atoms.orc, atoms.or_coords, atoms.irc,
-        points_distance)
+                                        points_distance)
         coords = np.vstack((coords, o_hsphere.coords))
-        # No inner means to not create the inner residue faux spheres boundary
-        if not args.no_inner:
-            # Inner residue boundary hemisphere coords same explanations as
-            # above except for only generates on the outer side of the best fit
-            # plane of the inner residue atoms.
-            i_hsphere = boundary.Hemisphere(atoms.irc, atoms.ir_coords, atoms.orc,
-            points_distance)
-            coords = np.vstack((coords, i_hsphere.coords))
+    # No inner means to not create the inner residue faux spheres boundary
+    if not args.no_inner:
+        # Inner residue boundary hemisphere coords same explanations as
+        # above except for only generates on the outer side of the best fit
+        # plane of the inner residue atoms.
+        i_hsphere = boundary.Hemisphere(atoms.irc, atoms.ir_coords,
+                                        atoms.orc, points_distance)
+        coords = np.vstack((coords, i_hsphere.coords))
     # Append probe extended atom radii array with an array of length equal to
     # the total number of boundary spheres filled with values of probe radius.
     radii = np.append(atoms_mbr[1] + args.probe_radius,
@@ -184,9 +186,7 @@ def main():
 
     # Print out the volume.
     print(f"Volume: {volume_amount} Å³")
-
-    end = time_ns() - start
-    print(f"Took: {end * 10 ** (-9)}s")
+    print(f"Took: {(time_ns() - start) * 10 ** (-9)}s")
 
     if args.vertices_file or args.visualize:
         # Run connected components on the volume grid to get SES border nodes

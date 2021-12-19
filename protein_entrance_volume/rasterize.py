@@ -8,7 +8,8 @@ from numba import types
 import numpy as np
 
 
-@jitclass([('svoxel', types.int64[:]), ('radius', types.float64), ('grid', types.b1[:,:,:])])
+@jitclass([('svoxel', types.int64[:]), ('radius', types.float64),
+           ('grid', types.b1[:, :, :])])
 class Sphere:
     """
     Rasterized sphere on a boolean grid.
@@ -32,8 +33,8 @@ class Sphere:
             z_coord = maxz_x
             y_coord = 0
             while True:
-                while x_coord** 2 + y_coord ** 2 + z_coord ** 2 > radius2 and \
-                        z_coord >= x_coord and z_coord >= y_coord:
+                while x_coord ** 2 + y_coord ** 2 + z_coord ** 2 > radius2 \
+                        and z_coord >= x_coord and z_coord >= y_coord:
                     z_coord -= 1
                 if z_coord < x_coord or z_coord < y_coord:
                     break
