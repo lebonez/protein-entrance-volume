@@ -13,6 +13,8 @@ class SAS:
     Grid version of the SAS with the capability to translate back and forth
     between coordinate systems.
     """
+    _volume = None
+    _vertices = None
 
     def __init__(self, coords, radii, start, stop, direction, grid_size,
                  fill_inside=False):
@@ -22,7 +24,7 @@ class SAS:
         """
         # Generate the SAS grid from spherical points and radii of the entrance.
         self.grid = Grid.from_cartesian_spheres(
-            coords, radii, grid_size=grid_size, fill_inside=True)
+            coords, radii, grid_size=grid_size, fill_inside=fill_inside)
 
         self.grid_size = grid_size
         # Find an empty starting voxel near the tip of the outer residue
@@ -41,6 +43,10 @@ class SAS:
 
     @property
     def volume(self):
+        """
+        Returns the volume given by the number of true values in the grid
+        multiplied by the grid size.
+        """
         if self._volume is None:
             # Calculate the volume by counting true values in the above grid
             # and multiplying by grid size cubed.
@@ -53,9 +59,15 @@ class SES:
     Calculates the SES from the SAS described above.
     """
     _volume = None
+    _vertices = None
 
     def __init__(self, sas, extension):
+        """
+        Generate the SES by taking all of the SAS nodes and expanding them
+        spherical by the extension then also adding in the original SAS nodes.
+        """
         self.grid_size = sas.grid_size
+        self.starting_voxel = sas.starting_voxel
         # A beginning first voxel for calculating the probe extended grid using
         # the first sas border node.
         voxel = np.array(np.unravel_index(sas.sas_nodes[0], sas.grid.shape))
@@ -92,11 +104,33 @@ class SES:
         )
 
     @property
+    def vertices(self):
+        """
+        The array of vertices given by the nodes on the surface of the SES.
+        """
+        if self._vertices is None:
+            _, ses_nodes = utils.connected_components(
+                np.invert(self.grid.grid), self.starting_voxel,
+                border_only=True
+            )
+            # Calculate center of voxels then scale and shift them back to the
+            # original atom coordinates system.
+            self._vertices = ((np.array(np.unravel_index(ses_nodes,
+                self.grid.shape)).T + 0.5) * self.grid_size +
+                self.grid.zero_shift)
+        return self._vertices
+
+    @property
     def volume(self):
+        """
+        Returns the volume given by the number of true values in the grid
+        multiplied by the grid size.
+        """
         if self._volume is None:
             # Calculate the volume by counting true values in the above grid
             # and multiplying by grid size cubed.
-            self._volume = np.count_nonzero(self.grid.grid) * (self.grid_size ** 3)
+            self._volume = (np.count_nonzero(self.grid.grid)
+                * (self.grid_size ** 3))
         return self._volume
 
 

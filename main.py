@@ -5,11 +5,8 @@ Email: miwalls@siue.edu
 """
 import argparse
 from time import time_ns
-import numpy as np
 from protein_entrance_volume import atoms
-from protein_entrance_volume import rasterize
 from protein_entrance_volume import grid
-from protein_entrance_volume import utils
 from protein_entrance_volume import io
 from protein_entrance_volume import visualization
 
@@ -118,13 +115,7 @@ def main():
         # Run connected components on the volume grid to get SES border nodes
         # for file generation also invert the grid since connected components
         # searches for false values.
-        _, ses_nodes = utils.connected_components(
-            np.invert(ses.grid.grid), sas.starting_voxel, border_only=True
-        )
-        # Calculate center of voxels then scale and shift them back to the
-        # original atom coordinates system.
-        verts = ((np.array(np.unravel_index(ses_nodes, sas.grid.shape)).T
-                 + 0.5) * args.grid_size + sas.grid.zero_shift)
+        verts = ses.vertices
         if args.vertices_file:
             io.vertices_file(args.vertices_file, verts)
         if args.visualize:
