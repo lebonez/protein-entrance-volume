@@ -1,3 +1,11 @@
+### Cleanup or Optimizations
+The file IO near bottom of main for vertices should probably be its own file.
+
+The new grid after the SAS connected components calculation should be its own
+function in the Grid class.
+
+Add in some abstract inheritance classes to clean up repetative code in classes.
+
 ### New Features
 
 Handle multiple frames and other file types in atoms class as well as any file

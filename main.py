@@ -11,7 +11,7 @@ from protein_entrance_volume.grid import Grid
 from protein_entrance_volume import boundary
 from protein_entrance_volume import rasterize
 from protein_entrance_volume import utils
-from protein_entrance_volume import exception
+from protein_entrance_volume import io
 from protein_entrance_volume import visualization
 
 
@@ -19,33 +19,47 @@ def parse_args():
     """
     Parse args
     """
-    parser = argparse.ArgumentParser(description="Parse pdb file to get "
+    parser = argparse.ArgumentParser(
+        description="Parse pdb file to get "
         "protein entrance volume determined by inner and outer residues.",
         formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-o', '--outer-residues', required=True, type=int,
+    parser.add_argument(
+        '-o', '--outer-residues', required=True, type=int,
         nargs='+', help="A list of three or more outer residues to define the "
         "initial entrance of the tunnel.")
-    parser.add_argument('-i', '--inner-residues', required=True, type=int,
+    parser.add_argument(
+        '-i', '--inner-residues', required=True, type=int,
         nargs='+', help="A list of three or more inner residues to define the "
         "desired ending location in tunnel.")
-    parser.add_argument('--no-outer', default=False, action='store_true',
+    parser.add_argument(
+        '--no-outer', default=False, action='store_true',
         help="Don't use outer residues boundary hemisphere this is helpful if "
         "the outer residues shift positions alot.")
-    parser.add_argument('--no-inner', default=False, action='store_true',
+    parser.add_argument(
+        '--no-inner', default=False, action='store_true',
         help="Don't use inner residues boundary hemisphere this is helpful if "
         "the inner residues shift positions alot.")
-    parser.add_argument('-r', '--probe-radius', default=1.4, type=float,
+    parser.add_argument(
+        '-r', '--probe-radius', default=1.4, type=float,
         help="Radius of the algorithm probe to define the inner surface of "
         "the cavity (default: %(default)s).")
-    parser.add_argument('-g', '--grid-size', default=0.2, type=float,
+    parser.add_argument(
+        '-g', '--grid-size', default=0.2, type=float,
         help="The size of the grid to use to calculate the cavity inner "
         "surface (default: %(default)s).")
-    parser.add_argument('-R', '--resolution', default=4, type=float,
+    parser.add_argument(
+        '-R', '--resolution', default=4, type=float,
         help="Lower values decreases runtime and higher values for accuracy "
         "(default: %(default)s).")
-    parser.add_argument('-f', '--pdb-file', required=True, type=str,
+    parser.add_argument(
+        '-f', '--pdb-file', required=True, type=str,
         help="Path to the PDB file.")
-    parser.add_argument('-v', '--vertices-file', default="", type=str,
+    parser.add_argument(
+        '-V', '--visualize', const='scatter', nargs='?',
+        choices=('scatter',),
+        help="If specified, creates a visualization (default: html).")
+    parser.add_argument(
+        '-v', '--vertices-file', default="", type=str,
         help="""
 Output the vertices to file which file types depends on the file extension
 provided in this argument.
@@ -88,7 +102,7 @@ def main():
 
     # Generate the larger outer boundary sphere coords
     b_sphere = boundary.Sphere(atoms.arc, atoms.ar_coords, points_distance)
-
+    coords = b_sphere.coords
     # No outer means to not create the outer residue faux spheres boundary
     if not args.no_outer:
         # Outer residue boundary half spheres coords same explanations as
@@ -96,7 +110,7 @@ def main():
         # plane of the outer residue atoms.
         o_hsphere = boundary.Hemisphere(atoms.orc, atoms.or_coords, atoms.irc,
                                         points_distance)
-
+        coords = np.vstack((coords, o_hsphere.coords))
     # No inner means to not create the inner residue faux spheres boundary
     if not args.no_inner:
         # Inner residue boundary half spheres coords same explanations as
@@ -104,19 +118,17 @@ def main():
         # plane of the inner residue atoms.
         i_hsphere = boundary.Hemisphere(atoms.irc, atoms.ir_coords, atoms.orc,
                                         points_distance)
-    b_points = np.vstack((b_sphere.coords, o_hsphere.coords, i_hsphere.coords))
+        coords = np.vstack((coords, i_hsphere.coords))
+
+    # Append probe extended atom radii array with an array of length equal to
+    # the total number of boundary spheres filled with values of probe radius.
+    radii = np.append(atoms_mbr[1] + args.probe_radius,
+                      np.full(coords.shape[0], args.probe_radius))
+    coords = np.vstack((atoms_mbr[0], coords))
 
     # Generate the SAS grid from spherical points and radii within the MBR.
-    # Inside arguments it appends all of the boundary points to the atom mbr
-    # coords and it appends a radii array same length of the boundary points
-    # with values equal to probe size to the atom mbr radii.
-    grid = Grid.from_cartesian_spheres(
-        np.append(atoms_mbr[0], b_points, axis=0),
-        np.append(atoms_mbr[1] + args.probe_radius,
-                  np.full(b_points.shape[0], args.probe_radius), axis=0
-        ),
-        grid_size=args.grid_size, fill_inside=True
-    )
+    grid = Grid.from_cartesian_spheres(coords, radii, grid_size=args.grid_size,
+                                       fill_inside=True)
 
     # Find an empty starting voxel near the tip of the outer residue
     # hemisphere. This is the best location since it is the actual beginning
@@ -129,7 +141,7 @@ def main():
     nodes, sas_nodes = utils.connected_components(grid.grid, starting_voxel)
 
     # A beginning first voxel for calculating the probe extended grid using
-    # the first sas node.
+    # the first sas border node.
     voxel = np.array(np.unravel_index(sas_nodes[0], grid.shape))
 
     # Build the initial grid using the first sas node voxel coordinate
@@ -173,7 +185,7 @@ def main():
     end = time_ns() - start
     print(f"Took: {end * 10 ** (-9)}s")
 
-    if args.vertices_file:
+    if args.vertices_file or args.visualize:
         # Run connected components on the volume grid to get SES border nodes
         # for file generation
         _, ses_nodes = utils.connected_components(
@@ -182,41 +194,11 @@ def main():
         # Calculate center of voxels then scale and shift them back to the
         # original atom coordinates system.
         verts = ((np.array(np.unravel_index(ses_nodes, grid.shape)).T + 0.5)
-            * args.grid_size + grid.zero_shift)
-        if args.vertices_file.endswith(".xyz"):
-            # Convert SES nodes to coordinates in the original atom coordinate
-            # system. Generate an xyz file with atoms called X by far the
-            # slowest.
-            with open(args.vertices_file, 'w+', encoding='utf-8') \
-                    as vertices_file:
-                vertices_file.write(
-                    f"{str(verts.shape[0])}\nVolume: {volume_amount} Å³\n"
-                )
-                for vert in verts:
-                    vert = list(vert)
-                    vertices_file.write(f"X {vert[0]} {vert[1]} {vert[2]}\n")
-        elif args.vertices_file.endswith(".csv"):
-            # CSV file with one vertices x,y,z per row and x,y,z header
-            np.savetxt(
-                args.vertices_file, verts, header="x,y,z", comments="",
-                delimiter=","
-            )
-        elif args.vertices_file.endswith(".txt"):
-            # Dump vertices and volume to a space separated file
-            np.savetxt(
-                args.vertices_file, verts,
-                header=f"Volume: {volume_amount} Å³"
-            )
-        elif args.vertices_file.endswith(".npz"):
-            # Dump verts to a npz array file fastest and smallest way ideal
-            # for doing post processing of the verts.
-            np.savez_compressed(args.vertices_file, verts)
-        else:
-            raise exception.InvalidFileExtension(
-                [".xyz", ".csv", ".txt", ".npz"]
-            )
-
-        # visualization.matplotlib_points(verts)
+                 * args.grid_size + grid.zero_shift)
+        if args.vertices_file:
+            io.vertices_file(args.vertices_file, verts)
+        if args.visualize:
+            visualization.coordinates(verts, plot_type=args.visualize)
 
 
 if __name__ == '__main__':
