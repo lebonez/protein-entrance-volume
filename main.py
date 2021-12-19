@@ -87,111 +87,42 @@ def main():
     points_distance = args.probe_radius / args.resolution
 
     # Generate the larger outer boundary sphere coords
-    b_points = boundary.sphere(atoms.arc, atoms.ar_coords, points_distance)
+    b_sphere = boundary.Sphere(atoms.arc, atoms.ar_coords, points_distance)
 
     # No outer means to not create the outer residue faux spheres boundary
     if not args.no_outer:
         # Outer residue boundary half spheres coords same explanations as
         # above except for only generates on the outer side of the best fit
         # plane of the outer residue atoms.
-        o_distance = utils.average_distance(atoms.orc, atoms.or_coords)
-        b_points = np.append(
-            b_points,
-            boundary.half_sphere(
-                atoms.or_coords, o_distance, atoms.orc, atoms.irc,
-                num_points=utils.sphere_num_points(
-                    o_distance,
-                    args.probe_radius / args.resolution
-                )
-            ),
-            axis=0
-        )
+        o_hsphere = boundary.Hemisphere(atoms.orc, atoms.or_coords, atoms.irc,
+                                        points_distance)
+
     # No inner means to not create the inner residue faux spheres boundary
     if not args.no_inner:
         # Inner residue boundary half spheres coords same explanations as
         # above except for only generates on the outer side of the best fit
         # plane of the inner residue atoms.
-        i_distance = utils.average_distance(atoms.irc, atoms.ir_coords)
-        b_points = np.append(
-            b_points,
-            boundary.half_sphere(
-                atoms.ir_coords, i_distance, atoms.irc, atoms.orc,
-                num_points=utils.sphere_num_points(
-                    i_distance,
-                    args.probe_radius / args.resolution
-                )
-            ),
-            axis=0
-        )
-
-    # Build a radii array that has same length as boundary points and set the
-    # radii to the probe_radius. This allows the SAS to directly translate to
-    # an SES along the spherical and half spherical boundaries coordinates.
-    b_radii = np.full(b_points.shape[0], args.probe_radius)
-
-    # Combine all of the boundary coords and radii with the mbr coords and
-    # radii.
-    coords = np.append(atoms_mbr[0], b_points, axis=0)
-    radii = np.append(atoms_mbr[1] + args.probe_radius, b_radii, axis=0)
-
-    # Find a starting point for the surface search that is on the center of the
-    # surface of the outer residue half sphere.This is the most ideal location
-    # to start the search since it would be the actual beginning of the
-    # entrance.
-
-    # Best fit plane of the outer residue coords
-    plane = utils.best_fit_plane(atoms.or_coords)
-
-    # Find our orientation of the normal by determining the side the inner
-    # residue centroid lies on and make sure the normal from the plane above
-    # points in the opposite direction.
-    opposing_side = utils.side_point(plane, atoms.irc)
-
-    normal = plane[1]
-
-    # Make sure the normal is not pointing at the opposing side if it is swap it.
-    if utils.side_point(plane, plane[1] + atoms.orc) == opposing_side:
-        # Swap normal to point away from the irc if it wasn't already.
-        normal *= -1
-
-    # Calculate the point using the distance to the outer residue half spheres
-    # subtracted by the probe radius multiplied by the normal from above then
-    # shifted to the outer residue centroid.
-    starting_point = (o_distance - args.probe_radius) * normal + atoms.orc
+        i_hsphere = boundary.Hemisphere(atoms.irc, atoms.ir_coords, atoms.orc,
+                                        points_distance)
+    b_points = np.vstack((b_sphere.coords, o_hsphere.coords, i_hsphere.coords))
 
     # Generate the SAS grid from spherical points and radii within the MBR.
+    # Inside arguments it appends all of the boundary points to the atom mbr
+    # coords and it appends a radii array same length of the boundary points
+    # with values equal to probe size to the atom mbr radii.
     grid = Grid.from_cartesian_spheres(
-        coords, radii, grid_size=args.grid_size, fill_inside=True
+        np.append(atoms_mbr[0], b_points, axis=0),
+        np.append(atoms_mbr[1] + args.probe_radius,
+                  np.full(b_points.shape[0], args.probe_radius), axis=0
+        ),
+        grid_size=args.grid_size, fill_inside=True
     )
 
-    # Find a good starting voxel to do SAS search by starting at the starting
-    # point that was calculated above and moving towards the orc.
-    starting_voxel = grid.gridify_point(starting_point)
-
-    i = 1
-
-    # Swap the normal back to point towards towards the orc from the starting
-    # point.
-    normal *= -1
-
-    # Loop through and add ith iteration times the normal until we get an empty
-    # (outside of spheres) voxel.
-    while grid.grid[starting_voxel[0], starting_voxel[1], starting_voxel[2]]:
-
-        # Calculate the point using the ith magnitude normal
-        point = starting_point + (i * normal)
-
-        # We are now too close to the outer residue centroid to consider any
-        # starting voxel valid so we raise custom exception here and user needs
-        # to tune command line parameters.
-        if np.linalg.norm(point - atoms.orc) < args.grid_size * 2:
-            raise exception.StartingVoxelNotFound
-
-        # Convert point to the integer grid voxel coordinate.
-        starting_voxel = grid.gridify_point(point)
-
-        # Increment the ith magnitude normal factor.
-        i += 1
+    # Find an empty starting voxel near the tip of the outer residue
+    # hemisphere. This is the best location since it is the actual beginning
+    # point of the entrance.
+    starting_voxel = grid.find_empty_voxel(o_hsphere.tip, atoms.orc,
+                                           -o_hsphere.normal)
 
     # Calculate the SAS volume nodes and SAS border nodes using
     # connected components.

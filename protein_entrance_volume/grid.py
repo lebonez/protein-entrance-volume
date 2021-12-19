@@ -4,6 +4,7 @@ Email: miwalls@siue.edu
 """
 import numpy as np
 from protein_entrance_volume import rasterize
+from protein_entrance_volume import exception
 
 
 class Grid:
@@ -83,6 +84,30 @@ class Grid:
         voxel coordinate.
         """
         return ((point - self.zero_shift) / self.grid_size).astype(np.int64)
+
+    def find_empty_voxel(self, start, stop, direction):
+        """
+        Given a directional vector starting with an initial cartesian point
+        iterate in the direction of the vector until an empty voxel is found.
+        Stop is supplied in the event an empty voxel is not found. The
+        iteration must stop before going too far so giving a stopping point is
+        required.
+        """
+        # Gridify and convert to float for the addition and comparisons
+        location = self.gridify_point(start).astype(np.float64)
+        stop_voxel = self.gridify_point(stop).astype(np.float64)
+        # Convert the above to int which basically rounds down to integer.
+        voxel = location.astype(np.int64)
+        while self.grid[voxel[0], voxel[1], voxel[2]]:
+            # Iteration in the direction of direction
+            location += direction
+
+            # We are now too close to the stop voxel so we need to stop before
+            # ending up outside of the grid itself with an index error.
+            if np.linalg.norm(location - stop_voxel) < 2:
+                raise exception.StartingVoxelNotFound
+            voxel = location.astype(np.int64)
+        return voxel
 
     @classmethod
     def from_cartesian_spheres(
