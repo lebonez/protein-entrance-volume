@@ -140,7 +140,7 @@ class Atoms:
                         id=atom.fullname,
                         x = x_coord, y = y_coord, z = z_coord,
                         radius=_get_atom_radius(atom) if \
-                            _get_atom_radius(atom) > 1 else 1.0,
+                            _get_atom_radius(atom) > 1.0 else 1.0,
                         residue_id=residue_id,
                         outer_residue=residue_id in outer_residues,
                         inner_residue=residue_id in inner_residues,
