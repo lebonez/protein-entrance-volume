@@ -5,6 +5,99 @@ Email: miwalls@siue.edu
 import numpy as np
 from protein_entrance_volume import rasterize
 from protein_entrance_volume import exception
+from protein_entrance_volume import utils
+
+
+class SAS:
+    """
+    Grid version of the SAS with the capability to translate back and forth
+    between coordinate systems.
+    """
+
+    def __init__(self, coords, radii, start, stop, direction, grid_size,
+                 fill_inside=False):
+        """
+        Build the gridified version of the SAS with the capability to translate
+        the surface coordinates back to the original coordinate system.
+        """
+        # Generate the SAS grid from spherical points and radii of the entrance.
+        self.grid = Grid.from_cartesian_spheres(
+            coords, radii, grid_size=grid_size, fill_inside=True)
+
+        self.grid_size = grid_size
+        # Find an empty starting voxel near the tip of the outer residue
+        # hemisphere. This is the best location since it is the actual
+        # beginning point of the entrance. The algorithm loops the voxel while
+        # incrementing the voxel in the opposite direction of the outer
+        # hemisphere normal if and until it reaches the atom outer residue
+        # centroid at which point it raises a voxel not found exception.
+        self.starting_voxel = self.grid.find_empty_voxel(
+            start, stop, direction)
+
+        # Calculate the SAS volume nodes and SAS border nodes using
+        # connected components.
+        self.nodes, self.sas_nodes = utils.connected_components(
+            self.grid.grid, self.starting_voxel)
+
+    @property
+    def volume(self):
+        if self._volume is None:
+            # Calculate the volume by counting true values in the above grid
+            # and multiplying by grid size cubed.
+            self._volume = np.count_nonzero(self.grid.grid) * (self.grid_size ** 3)
+        return self._volume
+
+
+class SES:
+    """
+    Calculates the SES from the SAS described above.
+    """
+    _volume = None
+
+    def __init__(self, sas, extension):
+        self.grid_size = sas.grid_size
+        # A beginning first voxel for calculating the probe extended grid using
+        # the first sas border node.
+        voxel = np.array(np.unravel_index(sas.sas_nodes[0], sas.grid.shape))
+
+        # Build the initial grid using the first sas node voxel coordinate
+        # extended by the probe radius divided by the grid size.
+        volume_grid = rasterize.sphere(
+            voxel, extension / self.grid_size,
+            np.zeros(sas.grid.shape, dtype=bool), fill_inside=False
+        )
+
+        # flatten array for the subsequent calculations.
+        volume_grid = volume_grid.flatten()
+
+        # Calculate the spherical 1D equation for the probe radius grid sphere
+        eqn = np.argwhere(volume_grid).flatten() - sas.sas_nodes[0]
+
+        # Apply all of the spheres at the remaining SAS border nodes using the
+        # sphere equation above calculated using the first sas node voxel.
+        volume_grid = utils.eqn_grid(sas.sas_nodes[1:], eqn, volume_grid)
+
+        # Set the SES nodes from the initial connected components run to true this
+        # fills any remaining holes which is faster then any binary fill method
+        # from other libraries.
+        volume_grid[sas.nodes] = True
+
+        # Build the SAS volume grid object which includes the center (non-border)
+        # voxels as well
+        # Note: it uses the previous grid zero shift attribute from the first atom
+        # coordinate based grid.
+        self.grid = Grid(
+            volume_grid.reshape(sas.grid.shape),
+            zero_shift=sas.grid.zero_shift, grid_size=self.grid_size
+        )
+
+    @property
+    def volume(self):
+        if self._volume is None:
+            # Calculate the volume by counting true values in the above grid
+            # and multiplying by grid size cubed.
+            self._volume = np.count_nonzero(self.grid.grid) * (self.grid_size ** 3)
+        return self._volume
 
 
 class Grid:

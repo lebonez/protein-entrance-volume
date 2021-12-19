@@ -7,8 +7,8 @@ import argparse
 from time import time_ns
 import numpy as np
 from protein_entrance_volume import atoms
-from protein_entrance_volume.grid import Grid
 from protein_entrance_volume import rasterize
+from protein_entrance_volume import grid
 from protein_entrance_volume import utils
 from protein_entrance_volume import io
 from protein_entrance_volume import visualization
@@ -98,66 +98,20 @@ def main():
         args.no_outer, args.no_inner, args.probe_radius,
         args.resolution)
 
-    # Generate the SAS grid from spherical points and radii of the entrance.
-    grid = Grid.from_cartesian_spheres(
-        protein.entrance.coords, protein.entrance.radii,
-        grid_size=args.grid_size, fill_inside=True)
-
-    # Find an empty starting voxel near the tip of the outer residue
-    # hemisphere. This is the best location since it is the actual beginning
-    # point of the entrance. The algorithm loops the voxel while incrementing
-    # the voxel in the opposite direction of the outer hemisphere normal if and
-    # until it reaches the atom outer residue centroid at which point it raises
-    # a voxel not found exception.
-    starting_voxel = grid.find_empty_voxel(
+    # Calculate the SAS from the entrance coords and radii. The hemisphere tip
+    # gives us a starting location since we need to know where the volume
+    # itself begins and the protein orc is where we should stop looking. Also
+    # the algorithm itself tries to find the starting voxel of the SAS by
+    # iterating the direction of the opposite of the outer hemisphere normal.
+    sas = grid.SAS(protein.entrance.coords, protein.entrance.radii,
         protein.entrance.outer_hemisphere.tip, protein.orc,
-        -protein.entrance.outer_hemisphere.normal)
+        -protein.entrance.outer_hemisphere.normal, args.grid_size,
+        fill_inside=True)
 
-    # Calculate the SAS volume nodes and SAS border nodes using
-    # connected components.
-    nodes, sas_nodes = utils.connected_components(grid.grid, starting_voxel)
-
-    # A beginning first voxel for calculating the probe extended grid using
-    # the first sas border node.
-    voxel = np.array(np.unravel_index(sas_nodes[0], grid.shape))
-
-    # Build the initial grid using the first sas node voxel coordinate
-    # extended by the probe radius divided by the grid size.
-    volume_grid = rasterize.sphere(
-        voxel, args.probe_radius / args.grid_size,
-        np.zeros(grid.shape, dtype=bool), fill_inside=False
-    )
-
-    # flatten array for the subsequent calculations.
-    volume_grid = volume_grid.flatten()
-
-    # Calculate the spherical 1D equation for the probe radius grid sphere
-    eqn = np.argwhere(volume_grid).flatten() - sas_nodes[0]
-
-    # Apply all of the spheres at the remaining SAS border nodes using the
-    # sphere equation above calculated using the first sas node voxel.
-    volume_grid = utils.eqn_grid(sas_nodes[1:], eqn, volume_grid)
-
-    # Set the SES nodes from the initial connected components run to true this
-    # fills any remaining holes which is faster then any binary fill method
-    # from other libraries.
-    volume_grid[nodes] = True
-
-    # Build the SAS volume grid object which includes the center (non-border)
-    # voxels as well
-    # Note: it uses the previous grid zero shift attribute from the first atom
-    # coordinate based grid.
-    grid = Grid(
-        volume_grid.reshape(grid.shape), zero_shift=grid.zero_shift,
-        grid_size=args.grid_size
-    )
-
-    # Calculate the volume by counting true values in the above grid and
-    # multiplying by grid size cubed.
-    volume_amount = np.count_nonzero(grid.grid) * (args.grid_size ** 3)
+    ses = grid.SES(sas, args.probe_radius)
 
     # Print out the volume.
-    print(f"Volume: {volume_amount} Å³")
+    print(f"Volume: {ses.volume} Å³")
     print(f"Took: {(time_ns() - start) * 10 ** (-9)}s")
 
     if args.vertices_file or args.visualize:
@@ -165,12 +119,12 @@ def main():
         # for file generation also invert the grid since connected components
         # searches for false values.
         _, ses_nodes = utils.connected_components(
-            np.invert(grid.grid), starting_voxel, border_only=True
+            np.invert(ses.grid.grid), sas.starting_voxel, border_only=True
         )
         # Calculate center of voxels then scale and shift them back to the
         # original atom coordinates system.
-        verts = ((np.array(np.unravel_index(ses_nodes, grid.shape)).T + 0.5)
-                 * args.grid_size + grid.zero_shift)
+        verts = ((np.array(np.unravel_index(ses_nodes, sas.grid.shape)).T
+                 + 0.5) * args.grid_size + sas.grid.zero_shift)
         if args.vertices_file:
             io.vertices_file(args.vertices_file, verts)
         if args.visualize:
