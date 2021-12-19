@@ -121,22 +121,22 @@ class Grid:
 
         # Shift coords to positive integer space required for grid.
         zero_shift = coords.min(axis=0) - max_radius * 2
-        coords -= zero_shift
 
+        grid_coords = coords - zero_shift
         # What dimension should the grid be in order to contain all spheres
         # plus radii.
         limits = np.ceil(
-            (coords.max(axis=0) + max_radius * 2) / grid_size
+            (grid_coords.max(axis=0) + max_radius * 2) / grid_size
         ).astype(np.int64)
 
         # Scale the radii and coords to grid_size
-        coords /= grid_size
-        radii /= grid_size
+        grid_coords /= grid_size
+        grid_radii = radii / grid_size
 
         # Rasterize spheres on the grid marking spherical surface points as
         # true.
         grid = rasterize.spheres(
-            coords.astype(np.int64), radii,
+            grid_coords.astype(np.int64), grid_radii,
             np.zeros(limits, dtype=bool), fill_inside=fill_inside
         )
 

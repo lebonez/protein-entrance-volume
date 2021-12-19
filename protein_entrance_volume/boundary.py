@@ -14,9 +14,10 @@ class Hemisphere:
 
     def __init__(self, centroid, coords, opposing_point, distance):
         """
-        Generates a hemisphere using the unit sphere from utils scaling to radius
-        and moving to centroid. Then find a best fit plane given plane coords then
-        return array of sphere points on the opposite side of opposing point.
+        Generates a hemisphere using the unit sphere from utils scaling to
+        radius and moving to centroid. Then find a best fit plane given plane
+        coords then return array of sphere points on the opposite side of
+        opposing point.
         """
         self._centroid = centroid
         self._radius = utils.average_distance(self._centroid, coords)
@@ -57,7 +58,8 @@ class Hemisphere:
         Convenience property to return the normal of the plane making up the
         hemisphere. Property also makes sure the normal being referenced
         points towards the side of the "sphere" where the hemispherical points
-        are located.
+        are located. Singular value decomposition is random in the
+        side the normal points for the best fit plane.
         """
         if self._normal is None:
             self._normal = self.plane[1]
@@ -74,7 +76,8 @@ class Hemisphere:
     def tip(self):
         """
         Convenience property to return the coordinates of the tip of the
-        hemisphere.
+        hemisphere which is basically the point on the surface from the
+        centroid in the direction of the normal.
         """
         if self._tip is None:
             self._tip = (self.radius) * self.normal + self.centroid
@@ -87,13 +90,14 @@ class Sphere:
     """
     def __init__(self, centroid, coords, distance):
         """
-        Generates a sphere using the unit sphere from utils scaling to radius and
-        moving to centroid. Radius is calculated using the average distance
+        Generates a sphere using the unit sphere from utils scaling to radius
+        and moving to centroid. Radius is calculated using the average distance
         between the centroid of the spheres and the coordinates near the outer
         bounds of the sphere. Number of points is calculated using the radius
         described above and the ideal "distance" between points.
         """
         self._centroid = centroid
+        # This should probably rethought
         self._radius = utils.average_distance(self._centroid, coords)
         num_points = utils.sphere_num_points(self._radius, distance)
         unit_sphere = utils.generate_sphere_points(num_points=num_points)
@@ -102,7 +106,7 @@ class Sphere:
     @property
     def centroid(self):
         """
-        Convenience property to return the coordinates of the hemisphere
+        Convenience property to return the centroid of the sphere
         """
         return self._centroid
 

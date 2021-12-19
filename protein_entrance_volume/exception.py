@@ -39,18 +39,20 @@ class InvalidFileExtension(Exception):
     def __init__(self, extensions):
         self.message = \
         f"""
-        Error: the file extension must be one of ({(', ').join(extensions)}).
+        Error: the file extension must be one of:
+        ({(', ').join(extensions)}).
         """
         super().__init__(self.message)
 
 
 class InvalidPlotType(Exception):
     """
-    Error for when an incorrect vertices out file extension is used.
+    Error for when an incorrect plot type is provided in the arguments.
     """
     def __init__(self, plot_types):
         self.message = \
         f"""
-        Error: the plot type must be one of ({(', ').join(extensions)}).
+        Error: the visualization plot type must be one of:
+        ({(', ').join(plot_types)}).
         """
         super().__init__(self.message)

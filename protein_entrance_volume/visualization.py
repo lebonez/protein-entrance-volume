@@ -22,7 +22,7 @@ def scatter(*coords):
     (x,y,z) coords each will be colored different by default.
     """
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    ax_subplot = fig.add_subplot(111, projection='3d')
     for coord in coords:
-        ax.scatter3D(*coord.T)
+        ax_subplot.scatter3D(*coord.T)
     plt.show()

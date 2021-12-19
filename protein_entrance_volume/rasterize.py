@@ -21,59 +21,63 @@ class Sphere:
         self.grid = grid
         self.svoxel = svoxel
         self.radius = radius
-        R2 = np.floor(self.radius ** 2)
-        zx = np.int64(np.floor(self.radius))
-        x = 0
+        radius2 = np.floor(self.radius ** 2)
+        maxz_x = np.int64(np.floor(self.radius))
+        x_coord = 0
         while True:
-            while x ** 2 + zx ** 2 > R2 and zx >= x:
-                zx -= 1
-            if zx < x:
+            while x_coord ** 2 + maxz_x ** 2 > radius2 and maxz_x >= x_coord:
+                maxz_x -= 1
+            if maxz_x < x_coord:
                 break
-            z = zx
-            y = 0
+            z_coord = maxz_x
+            y_coord = 0
             while True:
-                while x ** 2 + y ** 2 + z ** 2 > R2 and z >= x and z >= y:
-                    z -= 1
-                if z < x or z < y:
+                while x_coord** 2 + y_coord ** 2 + z_coord ** 2 > radius2 and \
+                        z_coord >= x_coord and z_coord >= y_coord:
+                    z_coord -= 1
+                if z_coord < x_coord or z_coord < y_coord:
                     break
-                self.fill_all(x, y, z)
+                self.fill_all(x_coord, y_coord, z_coord)
                 if fill_inside:
-                    for nz in range(z):
-                        self.fill_all(x, y, nz)
-                y += 1
-            x += 1
+                    for nz_coord in range(z_coord):
+                        self.fill_all(x_coord, y_coord, nz_coord)
+                y_coord += 1
+            x_coord += 1
 
-    def fill_signs(self, x, y, z):
+    def fill_signs(self, x_coord, y_coord, z_coord):
         """
         Fill negatives for reflections the if statements ensures there are no
         duplicates.
         """
-        self.grid[x + self.svoxel[0], y + self.svoxel[1], z + self.svoxel[2]] = True
+        self.grid[x_coord + self.svoxel[0], y_coord + self.svoxel[1],
+                  z_coord + self.svoxel[2]] = True
         while True:
-            z = -z
-            if z >= 0:
-                y = -y
-                if y >= 0:
-                    x = -x
-                    if x >= 0:
+            z_coord = -z_coord
+            if z_coord >= 0:
+                y_coord = -y_coord
+                if y_coord >= 0:
+                    x_coord = -x_coord
+                    if x_coord >= 0:
                         break
-            self.grid[x + self.svoxel[0], y + self.svoxel[1], z + self.svoxel[2]] = True
+            self.grid[x_coord + self.svoxel[0], y_coord + self.svoxel[1],
+                      z_coord + self.svoxel[2]] = True
 
-    def fill_all(self, x, y, z):
+    def fill_all(self, x_coord, y_coord, z_coord):
         """
         Fill all reflections.
         """
-        self.fill_signs(x, y, z)
-        if z > y:
-            self.fill_signs(x, z, y)
-        if z > x and z > y:
-            self.fill_signs(z, y, x)
+        self.fill_signs(x_coord, y_coord, z_coord)
+        if z_coord > y_coord:
+            self.fill_signs(x_coord, z_coord, y_coord)
+        if z_coord > x_coord and z_coord > y_coord:
+            self.fill_signs(z_coord, y_coord, x_coord)
 
 
 @njit(nogil=True, cache=True)
 def sphere(coord, radius, grid, fill_inside=False):
     """
-    Rasterize a sphere on the grid same as spheres below but just for one sphere
+    Rasterize a sphere on the grid same as spheres below but just for one
+    sphere.
     """
     Sphere(coord, radius, grid, fill_inside)
     return grid

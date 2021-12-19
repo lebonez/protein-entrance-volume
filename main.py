@@ -30,15 +30,15 @@ def parse_args():
     parser.add_argument(
         '-i', '--inner-residues', required=True, type=int,
         nargs='+', help="A list of three or more inner residues to define the "
-        "desired ending location in tunnel.")
+        "desired ending location in the tunnel.")
     parser.add_argument(
         '--no-outer', default=False, action='store_true',
         help="Don't use outer residues boundary hemisphere this is helpful if "
-        "the outer residues shift positions alot.")
+        "the outer residues shift positions alot and intersect.")
     parser.add_argument(
         '--no-inner', default=False, action='store_true',
         help="Don't use inner residues boundary hemisphere this is helpful if "
-        "the inner residues shift positions alot.")
+        "the inner residues shift positions alot and intersect.")
     parser.add_argument(
         '-r', '--probe-radius', default=1.4, type=float,
         help="Radius of the algorithm probe to define the inner surface of "
@@ -57,7 +57,7 @@ def parse_args():
     parser.add_argument(
         '-V', '--visualize', const='scatter', nargs='?',
         choices=('scatter',),
-        help="If specified, creates a visualization (default: html).")
+        help="If specified, creates a visualization plot (default: scatter).")
     parser.add_argument(
         '-v', '--vertices-file', default="", type=str,
         help="""
@@ -96,6 +96,7 @@ def main():
 
     # Reduce computation complexity for the grid by only using spheres within
     # the mbr calculated by the inner and outer residue atoms.
+
     atoms_mbr = atoms.residues_mbr(extension=args.probe_radius)
 
     points_distance = args.probe_radius / args.resolution
@@ -103,23 +104,22 @@ def main():
     # Generate the larger outer boundary sphere coords
     b_sphere = boundary.Sphere(atoms.arc, atoms.ar_coords, points_distance)
     coords = b_sphere.coords
-    # No outer means to not create the outer residue faux spheres boundary
+    # No outer means to not create the outer residue faux hemisphere boundary
     if not args.no_outer:
-        # Outer residue boundary half spheres coords same explanations as
+        # Outer residue boundary hemisphere coords same explanations as
         # above except for only generates on the outer side of the best fit
         # plane of the outer residue atoms.
         o_hsphere = boundary.Hemisphere(atoms.orc, atoms.or_coords, atoms.irc,
-                                        points_distance)
+        points_distance)
         coords = np.vstack((coords, o_hsphere.coords))
-    # No inner means to not create the inner residue faux spheres boundary
-    if not args.no_inner:
-        # Inner residue boundary half spheres coords same explanations as
-        # above except for only generates on the outer side of the best fit
-        # plane of the inner residue atoms.
-        i_hsphere = boundary.Hemisphere(atoms.irc, atoms.ir_coords, atoms.orc,
-                                        points_distance)
-        coords = np.vstack((coords, i_hsphere.coords))
-
+        # No inner means to not create the inner residue faux spheres boundary
+        if not args.no_inner:
+            # Inner residue boundary hemisphere coords same explanations as
+            # above except for only generates on the outer side of the best fit
+            # plane of the inner residue atoms.
+            i_hsphere = boundary.Hemisphere(atoms.irc, atoms.ir_coords, atoms.orc,
+            points_distance)
+            coords = np.vstack((coords, i_hsphere.coords))
     # Append probe extended atom radii array with an array of length equal to
     # the total number of boundary spheres filled with values of probe radius.
     radii = np.append(atoms_mbr[1] + args.probe_radius,
@@ -132,7 +132,10 @@ def main():
 
     # Find an empty starting voxel near the tip of the outer residue
     # hemisphere. This is the best location since it is the actual beginning
-    # point of the entrance.
+    # point of the entrance. The algorithm loops the voxel while incrementing
+    # the voxel in the opposite direction of the outer hemisphere normal if and
+    # until it reaches the atom outer residue centroid at which point it raises
+    # a voxel not found exception.
     starting_voxel = grid.find_empty_voxel(o_hsphere.tip, atoms.orc,
                                            -o_hsphere.normal)
 
@@ -145,7 +148,7 @@ def main():
     voxel = np.array(np.unravel_index(sas_nodes[0], grid.shape))
 
     # Build the initial grid using the first sas node voxel coordinate
-    # extended by the probe radius divided by grid size.
+    # extended by the probe radius divided by the grid size.
     volume_grid = rasterize.sphere(
         voxel, args.probe_radius / args.grid_size,
         np.zeros(grid.shape, dtype=bool), fill_inside=False
@@ -187,7 +190,8 @@ def main():
 
     if args.vertices_file or args.visualize:
         # Run connected components on the volume grid to get SES border nodes
-        # for file generation
+        # for file generation also invert the grid since connected components
+        # searches for false values.
         _, ses_nodes = utils.connected_components(
             np.invert(grid.grid), starting_voxel, border_only=True
         )

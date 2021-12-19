@@ -114,25 +114,24 @@ class Atoms:
         return self._arc
 
     @classmethod
-    def parse_atoms(cls, pdb_file, structure_id="prot", PERMISSIVE=False,
-        outer_residues=[], inner_residues=[]
-    ):
+    def parse_atoms(cls, pdb_file, structure_id="prot", outer_residues=None,
+                    inner_residues=None):
         """
         Make a list of dicts describing details about every atom noting the
         coordinates, radius, residue id, and outer/inner status creating a
         dataframe.
         """
-        pdb = PDBParser(PERMISSIVE=PERMISSIVE)
+        pdb = PDBParser(PERMISSIVE=False)
         structure = pdb.get_structure(structure_id, pdb_file)
         atoms = []
         for residue in structure[0].get_residues():
             residue_id = residue.get_full_id()[3][1]
             for atom in residue.get_atoms():
-                x, y, z = [*atom.get_coord()]
+                x_coord, y_coord, z_coord = [*atom.get_coord()]
                 atoms.append(
                     dict(
                         id=atom.fullname,
-                        x = x, y = y, z = z,
+                        x = x_coord, y = y_coord, z = z_coord,
                         radius=_get_atom_radius(atom) if \
                             _get_atom_radius(atom) > 1 else 1.0,
                         residue_id=residue_id,

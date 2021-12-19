@@ -240,26 +240,26 @@ def closest_node(node, nodes):
     return np.argmin(dist)
 
 
-def round_decimal(n, down=False):
+def round_decimal(number, down=False):
     """
     Rounds up (default) or down first nonzero decimal places.
     """
-    if n == 0:
+    if number == 0:
         return 0
 
-    sign = -1 if n < 0 else 1
+    sign = -1 if number < 0 else 1
     # How many decimal places are zero
-    scale = int(-np.floor(np.log10(abs(n))))
+    scale = int(-np.floor(np.log10(abs(number))))
     if scale <= 0:
         scale = 1
     # What should we multiply the n value by in order to round up or down.
     factor = 10 ** scale
     if down:
         # Round up after scaling by factor
-        result = np.floor(abs(n)*factor)
+        result = np.floor(abs(number)*factor)
     else:
         # Round down after scaling by factor
-        result = np.ceil(abs(n)*factor)
+        result = np.ceil(abs(number)*factor)
     # Return result scale back by factor and signed by sign.
     return sign * result / factor
 
@@ -278,13 +278,14 @@ def sphere_num_points(radius, distance):
     distance between the points on that sphere.
     """
     ratio = np.cos(4 * np.pi / (1 + np.sqrt(5)))
-    r2 = radius ** 2
-    d2 = distance ** 2
+    radius2 = radius ** 2
+    distance2 = distance ** 2
     # solve for N, d = r * sqrt((cos(b)*sqrt(6/N-9/N^2)-cos(a)*sqrt(2/N-1/N^2))^2+(sin(b)*sqrt(6/N-9/N^2)-sin(a)*sqrt(2/N-1/N^2))^2+4/N^2)
     # This is the approximation of the ugly equation above. 1.85 gives a very
     # close value to the true N compared to using a brute force while loop
     # method.
-    return np.int64(-1.85 * (4 * np.sqrt(3) * r2 * ratio - 2 * r2) / d2)
+    return np.int64(-1.85 * (4 * np.sqrt(3) * radius2 * ratio - 2 * radius2) /
+                    distance2)
 
 
 def generate_sphere_points(num_points=100):
@@ -303,9 +304,9 @@ def generate_sphere_points(num_points=100):
     theta = 2 * np.pi * indices / golden_ratio
 
     # Calculate our x, y, and z using spherical coordinates from indices.
-    x = (np.cos(theta) * np.sin(phi))
-    y = (np.sin(theta) * np.sin(phi))
-    z = (np.cos(phi))
+    x_coords = (np.cos(theta) * np.sin(phi))
+    y_coords = (np.sin(theta) * np.sin(phi))
+    z_coords = (np.cos(phi))
 
     # Return the coordinates are x, y, z pairs.
-    return np.transpose([x, y, z])
+    return np.transpose([x_coords, y_coords, z_coords])
