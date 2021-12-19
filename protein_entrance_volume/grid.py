@@ -80,7 +80,8 @@ class SES:
     def __init__(self, sas, extension):
         """
         Generate the SES by taking all of the SAS nodes and expanding them
-        spherical by the extension then also adding in the original SAS nodes.
+        spherically by the extension then also adding in the original SAS
+        nodes.
         """
         self.grid_size = sas.grid_size
         self.starting_voxel = sas.starting_voxel
