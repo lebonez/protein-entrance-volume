@@ -2,11 +2,18 @@
 Created by: Mitchell Walls
 Email: miwalls@siue.edu
 """
+import warnings
 import pandas as pd
 import numpy as np
+from Bio import BiopythonWarning
 from Bio.PDB import PDBParser
 from Bio.PDB.ResidueDepth import _get_atom_radius
+from Bio.PDB.PDBExceptions import PDBConstructionWarning
 from protein_entrance_volume import utils
+
+
+warnings.filterwarnings("ignore", category=PDBConstructionWarning)
+warnings.filterwarnings("ignore", category=BiopythonWarning)
 
 
 class Atoms:
