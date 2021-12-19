@@ -6,9 +6,8 @@ Email: miwalls@siue.edu
 import argparse
 from time import time_ns
 import numpy as np
-from protein_entrance_volume.atoms import Atoms
+from protein_entrance_volume import atoms
 from protein_entrance_volume.grid import Grid
-from protein_entrance_volume import boundary
 from protein_entrance_volume import rasterize
 from protein_entrance_volume import utils
 from protein_entrance_volume import io
@@ -88,49 +87,21 @@ def main():
         raise argparse.ArgumentError(None, msg)
 
     # Build the atoms dataframe object.
-    atoms = Atoms.parse_atoms(
-        args.pdb_file,
-        outer_residues=args.outer_residues,
-        inner_residues=args.inner_residues
-    )
+    protein = atoms.Protein.parse_atoms(
+        args.pdb_file, outer_residues=args.outer_residues,
+        inner_residues=args.inner_residues)
 
-    # Reduce computation complexity for the grid by only using spheres within
-    # the mbr calculated by the inner and outer residue atoms.
-    atoms_mbr = atoms.residues_mbr(extension=args.probe_radius)
+    # Generate the entrance of the protein which includes making all of the
+    # boundaries and minimizing the problem scope to a minimum bounding
+    # rectangle.
+    protein.generate_entrance(
+        args.no_outer, args.no_inner, args.probe_radius,
+        args.resolution)
 
-    # how far should each faux sphere be on the boundary hemispheres and
-    # sphere. Smaller distance make a slight difference in accuracy but increases
-    # computation time significantly.
-    points_distance = args.probe_radius / args.resolution
-
-    # Generate the larger outer boundary sphere coords
-    b_sphere = boundary.Sphere(atoms.arc, atoms.ar_coords, points_distance)
-    coords = b_sphere.coords
-    # No outer means to not create the outer residue faux hemisphere boundary
-    if not args.no_outer:
-        # Outer residue boundary hemisphere coords same explanations as
-        # above except for only generates on the outer side of the best fit
-        # plane of the outer residue atoms.
-        o_hsphere = boundary.Hemisphere(atoms.orc, atoms.or_coords, atoms.irc,
-                                        points_distance)
-        coords = np.vstack((coords, o_hsphere.coords))
-    # No inner means to not create the inner residue faux spheres boundary
-    if not args.no_inner:
-        # Inner residue boundary hemisphere coords same explanations as
-        # above except for only generates on the outer side of the best fit
-        # plane of the inner residue atoms.
-        i_hsphere = boundary.Hemisphere(atoms.irc, atoms.ir_coords,
-                                        atoms.orc, points_distance)
-        coords = np.vstack((coords, i_hsphere.coords))
-    # Append probe extended atom radii array with an array of length equal to
-    # the total number of boundary spheres filled with values of probe radius.
-    radii = np.append(atoms_mbr[1] + args.probe_radius,
-                      np.full(coords.shape[0], args.probe_radius))
-    coords = np.vstack((atoms_mbr[0], coords))
-
-    # Generate the SAS grid from spherical points and radii within the MBR.
-    grid = Grid.from_cartesian_spheres(coords, radii, grid_size=args.grid_size,
-                                       fill_inside=True)
+    # Generate the SAS grid from spherical points and radii of the entrance.
+    grid = Grid.from_cartesian_spheres(
+        protein.entrance.coords, protein.entrance.radii,
+        grid_size=args.grid_size, fill_inside=True)
 
     # Find an empty starting voxel near the tip of the outer residue
     # hemisphere. This is the best location since it is the actual beginning
@@ -138,8 +109,9 @@ def main():
     # the voxel in the opposite direction of the outer hemisphere normal if and
     # until it reaches the atom outer residue centroid at which point it raises
     # a voxel not found exception.
-    starting_voxel = grid.find_empty_voxel(o_hsphere.tip, atoms.orc,
-                                           -o_hsphere.normal)
+    starting_voxel = grid.find_empty_voxel(
+        protein.entrance.outer_hemisphere.tip, protein.orc,
+        -protein.entrance.outer_hemisphere.normal)
 
     # Calculate the SAS volume nodes and SAS border nodes using
     # connected components.
