@@ -100,11 +100,14 @@ def main():
     # itself begins and the protein orc is where we should stop looking. Also
     # the algorithm itself tries to find the starting voxel of the SAS by
     # iterating the direction of the opposite of the outer hemisphere normal.
-    sas = grid.SAS(protein.entrance.coords, protein.entrance.radii,
+    sas = grid.SAS(
+        protein.entrance.coords, protein.entrance.radii,
         protein.entrance.outer_hemisphere.tip, protein.orc,
         -protein.entrance.outer_hemisphere.normal, args.grid_size,
         fill_inside=True)
 
+    # Using the SAS calculate the SES by expanding all the SAS border nodes by
+    # the probe radius spherically.
     ses = grid.SES(sas, args.probe_radius)
 
     # Print out the volume.

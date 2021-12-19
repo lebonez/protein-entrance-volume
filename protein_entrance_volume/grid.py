@@ -22,7 +22,8 @@ class SAS:
         Build the gridified version of the SAS with the capability to translate
         the surface coordinates back to the original coordinate system.
         """
-        # Generate the SAS grid from spherical points and radii of the entrance.
+        # Generate the SAS grid from spherical points and radii of the
+        # entrance.
         self.grid = Grid.from_cartesian_spheres(
             coords, radii, grid_size=grid_size, fill_inside=fill_inside)
 
@@ -42,6 +43,20 @@ class SAS:
             self.grid.grid, self.starting_voxel)
 
     @property
+    def vertices(self):
+        """
+        The array of vertices given by the nodes on the surface of the SES.
+        """
+        if self._vertices is None:
+            # Calculate center of voxels then scale and shift them back to the
+            # original atom coordinates system.
+            self._vertices = (
+                (np.array(np.unravel_index(self.sas_nodes,
+                 self.grid.shape)).T + 0.5) * self.grid_size +
+                self.grid.zero_shift)
+        return self._vertices
+
+    @property
     def volume(self):
         """
         Returns the volume given by the number of true values in the grid
@@ -50,7 +65,8 @@ class SAS:
         if self._volume is None:
             # Calculate the volume by counting true values in the above grid
             # and multiplying by grid size cubed.
-            self._volume = np.count_nonzero(self.grid.grid) * (self.grid_size ** 3)
+            self._volume = (np.count_nonzero(self.grid.grid)
+                            * (self.grid_size ** 3))
         return self._volume
 
 
@@ -89,15 +105,15 @@ class SES:
         # sphere equation above calculated using the first sas node voxel.
         volume_grid = utils.eqn_grid(sas.sas_nodes[1:], eqn, volume_grid)
 
-        # Set the SES nodes from the initial connected components run to true this
-        # fills any remaining holes which is faster then any binary fill method
-        # from other libraries.
+        # Set the SES nodes from the initial connected components run to true
+        # this fills any remaining holes which is faster then any binary fill
+        # method from other libraries.
         volume_grid[sas.nodes] = True
 
-        # Build the SAS volume grid object which includes the center (non-border)
-        # voxels as well
-        # Note: it uses the previous grid zero shift attribute from the first atom
-        # coordinate based grid.
+        # Build the SAS volume grid object which includes the center
+        # (non-border) voxels as well
+        # Note: it uses the previous grid zero shift attribute from the first
+        # atom coordinate based grid.
         self.grid = Grid(
             volume_grid.reshape(sas.grid.shape),
             zero_shift=sas.grid.zero_shift, grid_size=self.grid_size
@@ -115,8 +131,9 @@ class SES:
             )
             # Calculate center of voxels then scale and shift them back to the
             # original atom coordinates system.
-            self._vertices = ((np.array(np.unravel_index(ses_nodes,
-                self.grid.shape)).T + 0.5) * self.grid_size +
+            self._vertices = ((
+                np.array(np.unravel_index(ses_nodes,
+                         self.grid.shape)).T + 0.5) * self.grid_size +
                 self.grid.zero_shift)
         return self._vertices
 
@@ -130,7 +147,7 @@ class SES:
             # Calculate the volume by counting true values in the above grid
             # and multiplying by grid size cubed.
             self._volume = (np.count_nonzero(self.grid.grid)
-                * (self.grid_size ** 3))
+                            * (self.grid_size ** 3))
         return self._volume
 
 
