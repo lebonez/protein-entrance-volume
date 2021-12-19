@@ -237,6 +237,9 @@ class Entrance:
 
     def __init__(self, coords, radii, boundary_sphere, outer_hemisphere,
                  inner_hemisphere):
+        """
+        Simply assign all the values of the entrance that are useful.
+        """
         self._coords = coords
         self._radii = radii
         self._boundary_sphere = boundary_sphere
