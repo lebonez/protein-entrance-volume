@@ -78,6 +78,11 @@ def main():
     """
     start = time_ns()
     args = parse_args()
+
+    if args.probe_radius > 2 or args.probe_radius < 1:
+        msg = 'Probe radius must be a value between 1 and 2.'
+        raise argparse.ArgumentError(None, msg)
+
     if len(args.outer_residues) < 3 or len(args.inner_residues) < 3:
         msg = 'Number of integer values for "--outer-residues" and ' \
               '--inner-residues" must be >= 3'
