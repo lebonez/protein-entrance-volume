@@ -182,9 +182,10 @@ class Protein:
                           extension=0, resolution=4):
         """
         Given the outer and inner residues we minimize the problem to a
-        bouding rectangle then add in the boundary coordinates. The boundary
+        bounding rectangle then add in the boundary coordinates. The boundary
         coordinates are made up from an outer larger spherical boundary and the
-        outer and inner residue hemispheres.
+        outer and inner residue hemispheres. Note this function also expands by
+        the extension which is typically probe radius for calculating the SAS.
         """
         # Reduce computation complexity for the grid by only using spheres
         # within the mbr calculated by the inner and outer residue atoms.

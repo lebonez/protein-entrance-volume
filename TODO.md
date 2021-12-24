@@ -1,6 +1,6 @@
 ### Cleanup or Optimizations
 
-Both the surfaces SAS and SES should in a surface style class.
+Grid SAS and SES classes are messy and not clear/generic enough to be considered pythonic.
 
 Add in some abstract inheritance classes to clean up repetitive code in classes.
 
