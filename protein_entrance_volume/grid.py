@@ -3,9 +3,139 @@ Created by: Mitchell Walls
 Email: miwalls@siue.edu
 """
 import numpy as np
+from numba import njit, prange
+from numba.typed import Dict
+from numba import types
 from protein_entrance_volume import rasterize
 from protein_entrance_volume import exception
-from protein_entrance_volume import utils
+
+
+# Can't reference this type inside a numba compiled function.
+int_array = types.int64[:]
+
+
+# Set of components to generate an equation of directly adjacent coordinates.
+components = np.array([[-1,  0,  0], [0, -1,  0], [0,  0, -1], [1, 0, 0],
+                       [0, 1, 0], [0, 0, 1]])
+
+
+def connected_components(grid, starting_voxel, border_only=False):
+    """
+    Using components above we can calculate adjacent indices using the equation
+    calculated by raveling the voxels and subtracting the starting voxel
+    index. This drastically speeds up connected components by using 1D
+    arrays.
+    """
+    # Find raveled 1D index of starting voxel coordinate
+    starting_index = np.ravel_multi_index(starting_voxel, grid.shape)
+    # Find equation of 1D indices of adjacent voxels.
+    eqn = np.ravel_multi_index((starting_voxel + components).T, grid.shape) \
+        - starting_index
+    # Run the meat of the algorithm.
+    was_out_of_bounds, nodes, borders = calculate_components(
+        starting_index, eqn, grid.flatten(), border_only
+    )
+    # Out of bounds is bad probably means we were outside of the bounding
+    # object.
+    if was_out_of_bounds:
+        raise exception.OutOfBounds
+    return nodes, borders
+
+
+@njit(nogil=True, cache=True)
+def calculate_components(starting_index, eqn, grid, border_only):
+    """
+    Process connected components marking if grid points are on border where
+    number of empty grid points near it is not equal to 6.
+    """
+    # Build a seen numba dict that allows us to mark indices that are true on
+    # the border (False values)
+    seen = Dict.empty(types.int64, types.b1)
+    # Queue numba dict for tracking indices that need checked and store their
+    # adjacent indices as the value.
+    queue = Dict.empty(types.int64, int_array)
+    # Dict to hold indices to check in the first while loop.
+    check = Dict.empty(types.int64, int_array)
+    # What is the maximum possible grid point so we can check for out of
+    # bounds.
+    limit = len(grid) - 1
+    was_out_of_bounds = False
+
+    check[starting_index] = eqn + starting_index
+    # Build starting index's indices queue and make sure the starting index is
+    # valid and at the border if border only.
+    while True:
+        # Get adjacent indices using equation.
+        index, indices = check.popitem()
+        # Check if out of bounds where indices can never be less than zero or
+        # greater than limit.
+        if (indices > limit).any() or (indices < 0).any():
+            return (was_out_of_bounds, np.array(list(seen)),
+                    np.array([k for k, v in seen.items() if not v]))
+
+        # Filter the indices to include only ones that are False on the boolean
+        # grid.
+        ies = indices[~grid[indices]]
+        # Don't need to be border starting index but make sure it has at least
+        # one False adjacent index.
+        if not border_only and ies.shape[0] > 0:
+            queue[index] = ies
+            break
+        # Need to be border starting index and make sure it has at least
+        # one False adjacent index.
+        if ies.shape[0] != 6 and ies.shape[0] > 0:
+            queue[index] = ies
+            break
+        # Didn't find what we needed time to add current indices to check
+        # further.
+        for i in indices:
+            check[i] = eqn + i
+
+    while queue:
+        # Remove item from queue assigning the key and value as below.
+        index, indices = queue.popitem()
+        # Add index to seen and mark if border or not where equal to six and is
+        # not a border index. Also index should always be False on the grid.
+        seen[index] = indices.shape[0] == 6
+        # Loop through all of the False grid indices adjacent to index.
+        for i in indices:
+            # Get adjacent indices of the current i index.
+            ies = eqn + i
+            # Check out of bounds again because that is bad if it happens.
+            if (ies > limit).any() or (ies < 0).any():
+                was_out_of_bounds = True
+                return (was_out_of_bounds, np.array(list(seen)),
+                        np.array([k for k, v in seen.items() if not v]))
+
+            # Get adjacents that are False on the grid.
+            ies = ies[~grid[ies]]
+            # Most cases border only is better but sometimes marking non-border
+            # components as well can be useful.
+            if border_only:
+                # Ignore any points that are obviously not near or on the
+                # border. Reduces this algorithms run time by ten times in most
+                # cases.
+                if ies.shape[0] == 6 and seen[index]:
+                    continue
+            # Add index to key queue if it hasn't been seen or already in the
+            # queue. Also add the adjacent indices of the index to the value.
+            if i not in seen and i not in queue:
+                queue[i] = ies
+    # Return all seen indices including ones not on the border.
+    return (was_out_of_bounds, np.array(list(seen)),
+            np.array([k for k, v in seen.items() if not v]))
+
+
+@njit(parallel=True, nogil=True, cache=True)
+def eqn_grid(nodes, eqn, grid):
+    """
+    This function takes a 1D boolean grid and applies an eqn to
+    every node in parallel (haven't found a way to do this without numba that
+    is as fast.)
+    """
+    for i in prange(nodes.shape[0]):
+        grid[nodes[i] + eqn] = True
+    return grid
 
 
 class SAS:
@@ -39,7 +169,7 @@ class SAS:
 
         # Calculate the SAS volume nodes and SAS border nodes using
         # connected components.
-        self.nodes, self.sas_nodes = utils.connected_components(
+        self.nodes, self.sas_nodes = connected_components(
             self.grid.grid, self.starting_voxel)
 
     @property
@@ -104,7 +234,7 @@ class SES:
 
         # Apply all of the spheres at the remaining SAS border nodes using the
         # sphere equation above calculated using the first sas node voxel.
-        volume_grid = utils.eqn_grid(sas.sas_nodes[1:], eqn, volume_grid)
+        volume_grid = eqn_grid(sas.sas_nodes[1:], eqn, volume_grid)
 
         # Set the SES nodes from the initial connected components run to true
         # this fills any remaining holes which is faster then any binary fill
@@ -126,7 +256,7 @@ class SES:
         The array of vertices given by the nodes on the surface of the SES.
         """
         if self._vertices is None:
-            _, ses_nodes = utils.connected_components(
+            _, ses_nodes = connected_components(
                 np.invert(self.grid.grid), self.starting_voxel,
                 border_only=True
             )
