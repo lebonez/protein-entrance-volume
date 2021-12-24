@@ -3,18 +3,9 @@ Created by: Mitchell Walls
 Email: miwalls@siue.edu
 """
 import warnings
-import pandas as pd
 import numpy as np
-from Bio import BiopythonWarning
-from Bio.PDB import PDBParser
-from Bio.PDB.ResidueDepth import _get_atom_radius
-from Bio.PDB.PDBExceptions import PDBConstructionWarning
 from protein_entrance_volume import utils
 from protein_entrance_volume import boundary
-
-
-# warnings.filterwarnings("ignore", category=PDBConstructionWarning)
-# warnings.filterwarnings("ignore", category=BiopythonWarning)
 
 
 class Protein:
@@ -22,8 +13,6 @@ class Protein:
     Build a class with dataframe containing atoms of protein including
     convenience functions and properties.
     """
-    _coords = None
-    _radii = None
     _or_coords = None
     _ir_coords = None
     _ar_coords = None
@@ -32,36 +21,17 @@ class Protein:
     _arc = None
     _entrance = None
 
-    def __init__(self, atoms):
+    def __init__(self, coords, radii, outer_residues_bool, inner_residues_bool,
+                 all_residues_bool):
         """
         Set dataframe to class. Note to never reference _df outside of this
         class just add needed functions and properties to this class.
         """
-        self._df = pd.DataFrame(atoms)
-
-    def __str__(self):
-        """
-        String function just print the dataframe.
-        """
-        return str(self._df)
-
-    @property
-    def coords(self):
-        """
-        Convenience property to return a 2D array of atom coordinates
-        """
-        if self._coords is None:
-            self._coords = self._df[['x', 'y', 'z']].to_numpy()
-        return self._coords
-
-    @property
-    def radii(self):
-        """
-        Convenience property to return a 1D array of atom radii
-        """
-        if self._radii is None:
-            self._radii = self._df.radius.to_numpy()
-        return self._radii
+        self.coords = coords
+        self.radii = radii
+        self.outer_residues_bool = outer_residues_bool
+        self.inner_residues_bool = inner_residues_bool
+        self.all_residues_bool = all_residues_bool
 
     @property
     def or_coords(self):
@@ -69,8 +39,7 @@ class Protein:
         Convenience property to return outer residues coords (or_coords).
         """
         if self._or_coords is None:
-            self._or_coords = self._df[
-                self._df['outer_residue']][['x', 'y', 'z']].to_numpy()
+            self._or_coords = self.coords[self.outer_residues_bool]
         return self._or_coords
 
     @property
@@ -79,8 +48,7 @@ class Protein:
         Convenience property to return inner residues coords (ir_coords).
         """
         if self._ir_coords is None:
-            self._ir_coords = self._df[
-                self._df['inner_residue']][['x', 'y', 'z']].to_numpy()
+            self._ir_coords = self.coords[self.inner_residues_bool]
         return self._ir_coords
 
     @property
@@ -90,7 +58,7 @@ class Protein:
         (ar_coords).
         """
         if self._ar_coords is None:
-            self._ar_coords = np.append(self.or_coords, self.ir_coords, axis=0)
+            self._ar_coords = self.coords[self.all_residues_bool]
         return self._ar_coords
 
     @property
@@ -118,7 +86,7 @@ class Protein:
         (arc).
         """
         if self._arc is None:
-            self._arc = (self.orc + self.irc) / 2
+            self._arc = self.ar_coords.mean(axis=0)
         return self._arc
 
     @property
@@ -133,30 +101,84 @@ class Protein:
         return self._entrance
 
     @classmethod
-    def parse_atoms(cls, pdb_file, structure_id="prot", outer_residues=None,
-                    inner_residues=None):
+    def parse_pdb(cls, pdb_file, outer_residues=None, inner_residues=None):
         """
         Make a list of dicts describing details about every atom noting the
         coordinates, radius, residue id, and outer/inner status creating a
         dataframe.
         """
-        pdb = PDBParser(PERMISSIVE=False)
-        structure = pdb.get_structure(structure_id, pdb_file)
-        atoms = []
-        for residue in structure[0].get_residues():
-            residue_id = residue.get_full_id()[3][1]
-            for atom in residue.get_atoms():
-                x_coord, y_coord, z_coord = [*atom.get_coord()]
-                radius = max(get_atom_radius(atom), 1.0)
-                atoms.append(
-                    dict(
-                        id=atom.fullname, x=x_coord, y=y_coord, z=z_coord,
-                        radius=radius, residue_id=residue_id,
-                        outer_residue=residue_id in outer_residues,
-                        inner_residue=residue_id in inner_residues,
-                    )
-                )
-        return cls(atoms)
+        allowed_records = {
+            "ATOM",
+            "HETATM",
+        }
+        resseqs = []
+        coords = []
+        radii = []
+        with open(pdb_file, 'r', encoding='utf-8') as handle:
+            lines = handle.readlines()
+            if not lines:
+                raise ValueError(f"PDB file '{pdb_file}' is empty.")
+        for i, line in enumerate(lines):
+
+            record_type = line[0:6].strip()
+            if record_type not in allowed_records:
+                continue
+
+            try:
+                serial_number = int(line[6:11])
+            except ValueError as value_error:
+                raise ValueError("Serial number was not valid.") \
+                        from value_error
+
+            fullname = line[12:16]
+            # get rid of whitespace in atom names
+            split_list = fullname.split()
+            if len(split_list) != 1:
+                # atom name has internal spaces, e.g. " N B ", so
+                # we do not strip spaces
+                name = fullname
+            else:
+                # atom name is like " CA ", so we can strip spaces
+                name = split_list[0]
+            altloc = line[16]
+            resname = line[17:20].strip()
+            chainid = line[21]
+            resseq = int(line[22:26].split()[0])  # sequence identifier
+            icode = line[26]  # insertion code
+            if record_type == "HETATM":  # hetero atom flag
+                if resname in ["WAT", "HOH"]:
+                    hetero_flag = "W"
+                else:
+                    hetero_flag = "H"
+            else:
+                hetero_flag = " "
+
+            try:
+                x_coord = float(line[30:38])
+                y_coord = float(line[38:46])
+                z_coord = float(line[46:54])
+            except ValueError as value_error:
+                raise ValueError(
+                    f"Invalid or missing coordinate(s) at line {i}."
+                ) from value_error
+            segid = line[72:76]
+            element = line[76:78].strip().upper()
+
+            coords.append(np.array((x_coord, y_coord, z_coord)))
+            resseqs.append(resseq)
+            radii.append(get_atom_radius(name, element, resname, hetero_flag))
+
+        coords = np.array(coords)
+        resseqs = np.array(resseqs)
+        radii = np.array(radii)
+
+        outer_residues_bool = np.in1d(resseqs, outer_residues)
+        inner_residues_bool = np.in1d(resseqs, inner_residues)
+        all_residues_bool = np.logical_or(outer_residues_bool,
+                                          inner_residues_bool)
+
+        return cls(coords, radii, outer_residues_bool, inner_residues_bool,
+                   all_residues_bool)
 
     def residues_mbr(self, extension=0):
         """
@@ -320,7 +342,7 @@ _atomic_radii = {
 }
 
 
-def get_atom_radius(atom, rtype="united"):
+def get_atom_radius(at_name, at_elem, resname, het_atm, rtype="united"):
     """Translate an atom object to an atomic radius defined in MSMS (PRIVATE).
     Uses information from the parent residue and the atom object to define
     the atom type.
@@ -338,12 +360,7 @@ def get_atom_radius(atom, rtype="united"):
             "'united'"
         )
 
-    resname = atom.parent.resname
-    het_atm = atom.parent.id[0]
-
-    at_name = atom.name
-    at_elem = atom.element
-
+    radii_not_found = []
     # Hydrogens
     if at_elem == "H" or at_elem == "D":
         return _atomic_radii[15][typekey]
@@ -703,6 +720,6 @@ def get_atom_radius(atom, rtype="united"):
     elif resname in {"FAD", "NAD", "AMX", "APU"} and at_name.startswith("H"):
         return _atomic_radii[15][typekey]
     else:
-        warnings.warn(f"{at_name}:{resname} not in radii library.",
-                      BiopythonWarning)
-        return 0.01
+        warnings.warn(f"{at_name}:{resname} not in radii library was set to "
+                      "1.2 Å.")
+        return 1.2

@@ -89,7 +89,7 @@ def main():
         raise argparse.ArgumentError(None, msg)
 
     # Build the atoms dataframe object.
-    protein = atoms.Protein.parse_atoms(
+    protein = atoms.Protein.parse_pdb(
         args.pdb_file, outer_residues=args.outer_residues,
         inner_residues=args.inner_residues)
 
