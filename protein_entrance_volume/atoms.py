@@ -282,6 +282,7 @@ class Entrance:
         """
         return self._inner_hemisphere
 
+
 _atomic_radii = {
     #   atom num dist  Rexplicit Runited-atom
     1: (0.57, 1.40, 1.40),
@@ -333,7 +334,8 @@ def get_atom_radius(atom, rtype="united"):
         typekey = 2
     else:
         raise ValueError(
-            f"Radius type ({rtype!r}) not understood. Must be 'explicit' or 'united'"
+            f"Radius type ({rtype!r}) not understood. Must be 'explicit' or "
+            "'united'"
         )
 
     resname = atom.parent.resname
@@ -443,7 +445,8 @@ def get_atom_radius(atom, rtype="united"):
     # HIS is treated here as the same as HIE
     #
     # HISL is a deprotonated HIS (the L means liganded)
-    elif resname in {"HIS", "HID", "HIE", "HIP", "HISL"} and at_name in {"CE1", "CD2"}:
+    elif resname in {"HIS", "HID", "HIE", "HIP", "HISL"} \
+            and at_name in {"CE1", "CD2"}:
         return _atomic_radii[11][typekey]
     elif resname in {"HIS", "HID", "HIE", "HISL"} and at_name == "ND1":
         return _atomic_radii[14][typekey]
@@ -453,7 +456,8 @@ def get_atom_radius(atom, rtype="united"):
         return _atomic_radii[4][typekey]
     elif resname in {"HID", "HISL"} and at_name in {"NE2", "RE2"}:
         return _atomic_radii[14][typekey]
-    elif resname in {"HIS", "HID", "HIP", "HISL"} and at_name.startswith(("AD", "AE")):
+    elif resname in {"HIS", "HID", "HIP", "HISL"} \
+            and at_name.startswith(("AD", "AE")):
         return _atomic_radii[4][typekey]
     # More amino acids
     elif resname == "ILE" and at_name == "CG1":
@@ -628,7 +632,8 @@ def get_atom_radius(atom, rtype="united"):
         return _atomic_radii[11][typekey]
     elif resname == "FMN" and at_name in {"C7M", "C8M"}:
         return _atomic_radii[9][typekey]
-    elif resname == "FMN" and at_name.startswith(("C1", "C2", "C3", "C4", "C5")):
+    elif resname == "FMN" \
+            and at_name.startswith(("C1", "C2", "C3", "C4", "C5")):
         return _atomic_radii[8][typekey]
     elif resname == "FMN" and at_name.startswith(("O2", "O3", "O4")):
         return _atomic_radii[2][typekey]
@@ -698,5 +703,6 @@ def get_atom_radius(atom, rtype="united"):
     elif resname in {"FAD", "NAD", "AMX", "APU"} and at_name.startswith("H"):
         return _atomic_radii[15][typekey]
     else:
-        warnings.warn(f"{at_name}:{resname} not in radii library.", BiopythonWarning)
+        warnings.warn(f"{at_name}:{resname} not in radii library.",
+                      BiopythonWarning)
         return 0.01

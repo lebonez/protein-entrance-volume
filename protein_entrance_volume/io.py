@@ -13,7 +13,7 @@ def vertices_file(file, verts):
     """
     if file.endswith(".xyz"):
         # Convert SES nodes to coordinates in the original atom coordinate
-        # system. Generate an xyz file with atoms called X by far the
+        # system. Generate an xyz file with atoms called DOT by far the
         # slowest.
         with open(file, 'w+', encoding='utf-8') \
                 as xyz_file:
@@ -21,7 +21,7 @@ def vertices_file(file, verts):
                 f"{str(verts.shape[0])}\n\n"
             )
             for vert in verts:
-                xyz_file.write(f"X {vert[0]} {vert[1]} {vert[2]}\n")
+                xyz_file.write(f"DOT {vert[0]} {vert[1]} {vert[2]}\n")
     elif file.endswith(".csv"):
         # CSV file with one vertices x,y,z per row and x,y,z header
         np.savetxt(

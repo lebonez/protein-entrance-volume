@@ -60,8 +60,8 @@ def parse_args():
 Output the vertices to file which file types depends on the file extension
 provided in this argument.
     xyz: Outputs the vertices as a molecular xyz file with each vertices
-         marked as an "X" atom and has volume as the comment line after number
-         of atoms by far slowest file output.
+         marked as an "DOT" atom and has volume as the comment line after
+         number of atoms by far slowest file output.
     csv: Vertices array is dumped to a file with "x,y,z" as header and each
          line containing a comma separated x,y,z coordinate.
     txt: Vertices array is dumped to a txt file with first line containing
