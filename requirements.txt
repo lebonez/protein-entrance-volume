@@ -1,4 +1,2 @@
 matplotlib
 numba
-biopython
-pandas
