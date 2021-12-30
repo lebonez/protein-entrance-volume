@@ -103,9 +103,8 @@ class Protein:
     @classmethod
     def parse_pdb(cls, pdb_file, outer_residues=None, inner_residues=None):
         """
-        Make a list of dicts describing details about every atom noting the
-        coordinates, radius, residue id, and outer/inner status creating a
-        dataframe.
+        Make an array of describing details about every atom noting the
+        coordinates, radii, and inner/outer residue boolean.
         """
         allowed_records = {
             "ATOM",
@@ -163,6 +162,8 @@ class Protein:
         resseqs = np.array(resseqs)
         radii = np.array(radii)
 
+        # Generate a boolean array of definining where the outer, inner, and
+        # all (outer and inner) residues are located.
         outer_residues_bool = np.in1d(resseqs, outer_residues)
         inner_residues_bool = np.in1d(resseqs, inner_residues)
         all_residues_bool = np.logical_or(outer_residues_bool,

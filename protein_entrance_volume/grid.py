@@ -256,6 +256,8 @@ class SES:
         The array of vertices given by the nodes on the surface of the SES.
         """
         if self._vertices is None:
+            # Need to use connected components to find the actual surface nodes
+            # ignoring the inner nodes with border_only.
             _, ses_nodes = connected_components(
                 np.invert(self.grid.grid), self.starting_voxel,
                 border_only=True
