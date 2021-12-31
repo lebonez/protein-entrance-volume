@@ -44,7 +44,7 @@ def parse_args():
         help="The size of the grid to use to calculate the cavity inner "
         "surface (default: %(default)s).")
     parser.add_argument(
-        '-R', '--resolution', default=4, type=float,
+        '-R', '--resolution', default=4, type=int,
         help="Lower values decreases runtime and higher values for accuracy "
         "(default: %(default)s).")
     parser.add_argument(
@@ -57,17 +57,17 @@ def parse_args():
     parser.add_argument(
         '-v', '--vertices-file', default="", type=str,
         help="""
-Output the vertices to file which file types depends on the file extension
-provided in this argument.
+Output the vertices of the entrance volume SES to file where the file type
+generated is deteremined by the file extension type provided in this argument.
     xyz: Outputs the vertices as a molecular xyz file with each vertices
-         marked as an "DOT" atom and has volume as the comment line after
-         number of atoms by far slowest file output.
+         marked as a "DOT" atom. This is by far the slowest file output.
     csv: Vertices array is dumped to a file with "x,y,z" as header and each
          line containing a comma separated x,y,z coordinate.
     txt: Vertices array is dumped to a txt file with first line containing
          volume of vertices and x y z coordinates space separated.
-    npz: Recommended if loading the vertices array back into numpy for post
-         processing uses much less space and is faster.
+    npz: Numpy array compressed binary file which is recommended if loading the
+         vertices array back into numpy for post processing uses much less
+         space and is faster.
     """)
     return parser.parse_args()
 
@@ -120,9 +120,9 @@ def main():
     print(f"Took: {(time_ns() - start) * 10 ** (-9)}s")
 
     if args.vertices_file or args.visualize:
-        # Run connected components on the volume grid to get SES border nodes
-        # for file generation also invert the grid since connected components
-        # searches for false values.
+        # Grab the outer border vertices of the SES this takes a while because
+        # it runs connected components again searching for borders only so it
+        # is slightly faster than a full node search.
         verts = ses.vertices
         if args.vertices_file:
             io.vertices_file(args.vertices_file, verts)

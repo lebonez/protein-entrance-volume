@@ -46,7 +46,9 @@ def connected_components(grid, starting_voxel, border_only=False):
 def calculate_components(starting_index, eqn, grid, border_only):
     """
     Process connected components marking if grid points are on border where
-    number of empty grid points near it is not equal to 6.
+    number of empty grid points near it is not equal to 6. This is essentially
+    the "queue" implementation of floodfill with modifications for speed,
+    border marking, boundary checking, and boolean grids.
     """
     # Build a seen numba dict that allows us to mark indices that are true on
     # the border (False values)
@@ -57,9 +59,8 @@ def calculate_components(starting_index, eqn, grid, border_only):
     # Dict to hold indices to check in the first while loop.
     check = Dict.empty(types.int64, int_array)
     # What is the maximum possible grid point so we can check for out of
-    # bounds.
+    # bounds. Note: 0 is the lower limit.
     limit = len(grid) - 1
-    was_out_of_bounds = False
 
     check[starting_index] = eqn + starting_index
     # Build starting index's indices queue and make sure the starting index is
@@ -70,7 +71,7 @@ def calculate_components(starting_index, eqn, grid, border_only):
         # Check if out of bounds where indices can never be less than zero or
         # greater than limit.
         if (indices > limit).any() or (indices < 0).any():
-            return (was_out_of_bounds, np.array(list(seen)),
+            return (True, np.array(list(seen)),
                     np.array([k for k, v in seen.items() if not v]))
 
         # Filter the indices to include only ones that are False on the boolean
@@ -103,8 +104,7 @@ def calculate_components(starting_index, eqn, grid, border_only):
             ies = eqn + i
             # Check out of bounds again because that is bad if it happens.
             if (ies > limit).any() or (ies < 0).any():
-                was_out_of_bounds = True
-                return (was_out_of_bounds, np.array(list(seen)),
+                return (True, np.array(list(seen)),
                         np.array([k for k, v in seen.items() if not v]))
 
             # Get adjacents that are False on the grid.
@@ -122,7 +122,7 @@ def calculate_components(starting_index, eqn, grid, border_only):
             if i not in seen and i not in queue:
                 queue[i] = ies
     # Return all seen indices including ones not on the border.
-    return (was_out_of_bounds, np.array(list(seen)),
+    return (False, np.array(list(seen)),
             np.array([k for k, v in seen.items() if not v]))
 
 

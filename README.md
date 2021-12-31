@@ -38,8 +38,10 @@ pip install -f requirements.txt
 
 ### Example
 ```
-python main.py -o 107 78 79 230 -i 224 106 108 -r 1.5 -g 0.2 -R 4 -f example/pdbs/example.pdb -v example.npz
+python main.py -o 107 78 79 230 -i 224 106 108 -r 1.5 -g 0.2 -R 4 -f example/pdbs/example.pdb -v example.xyz
 ```
+Dumping to an xyz file allows it to be imported easily to VMD for viewing just load in the example.pdb
+then load in the example.xyz file to view the results.
 
 ### Command line basics.
 

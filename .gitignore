@@ -1,7 +1,6 @@
 __pycache__/
 files/
 .env/
-plot.*
 *.xyz
 *.csv
 *.txt

@@ -1,6 +1,6 @@
 ### Cleanup or Optimizations
 
-Grid SAS and SES classes are messy are not clear/generic enough to be
+Grid SAS and SES classes are messy and not clear/generic enough to be
 considered pythonic.
 
 Add in some abstract inheritance classes to clean up repetitive code in classes.
