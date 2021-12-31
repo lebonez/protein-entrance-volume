@@ -8,7 +8,7 @@ Add in some abstract inheritance classes to clean up repetitive code in classes.
 ### New Features
 
 Would be nice to have an installation using setup with cli described below having
-the program calling be something like "pev -f example.pdb..." rather than "python main.py -f example.pdb..."
+the program called be something like "pev -f example.pdb..." rather than "python main.py -f example.pdb..."
 
 Create a nice cli so that we can do more things like calculate the SES/SAS of
 the whole protein and not just the volume and much more. https://docs.python.org/3/library/argparse.html#sub-commands
