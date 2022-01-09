@@ -5,7 +5,7 @@ Email: miwalls@siue.edu
 """
 import argparse
 from time import time_ns
-from protein_entrance_volume import atoms
+from protein_entrance_volume import parser
 from protein_entrance_volume import grid
 from protein_entrance_volume import io
 from protein_entrance_volume import visualization
@@ -89,7 +89,7 @@ def main():
         raise argparse.ArgumentError(None, msg)
 
     # Build the atoms dataframe object.
-    protein = atoms.Protein.parse_pdb(
+    protein = parser.parse_pdb(
         args.pdb_file, outer_residues=args.outer_residues,
         inner_residues=args.inner_residues)
 
