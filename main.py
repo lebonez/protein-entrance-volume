@@ -76,7 +76,6 @@ def main():
     """
     Main function to use the cli
     """
-    start = time_ns()
     args = parse_args()
 
     if args.probe_radius > 2 or args.probe_radius < 1:
@@ -88,46 +87,62 @@ def main():
               '--inner-residues" must be >= 3'
         raise argparse.ArgumentError(None, msg)
 
-    # Build the atoms dataframe object.
-    protein = parser.parse_pdb(
+    # Build the protein objects processes multiple frames
+    proteins = parser.parse_pdb(
         args.pdb_file, outer_residues=args.outer_residues,
         inner_residues=args.inner_residues)
 
-    # Generate the entrance of the protein which includes making all of the
-    # boundaries and minimizing the problem scope to a minimum bounding
-    # rectangle.
-    protein.generate_entrance(
-        args.no_outer, args.no_inner, args.probe_radius,
-        args.resolution)
+    results_file = f"{time_ns()}.results"
 
-    # Calculate the SAS from the entrance coords and radii. The hemisphere tip
-    # gives us a starting location since we need to know where the volume
-    # itself begins and the protein orc is where we should stop looking. Also
-    # the algorithm itself tries to find the starting voxel of the SAS by
-    # iterating the direction of the opposite of the outer hemisphere normal.
-    sas = grid.SAS(
-        protein.entrance.coords, protein.entrance.radii,
-        protein.entrance.outer_hemisphere.tip, protein.orc,
-        -protein.entrance.outer_hemisphere.normal, args.grid_size,
-        fill_inside=True)
+    for i, protein in enumerate(proteins):
+        print(f"Frame: {i}")
+        start = time_ns()
+        # Generate the entrance of the protein which includes making all of the
+        # boundaries and minimizing the problem scope to a minimum bounding
+        # rectangle.
+        protein.generate_entrance(
+            args.no_outer, args.no_inner, args.probe_radius,
+            args.resolution)
 
-    # Using the SAS calculate the SES by expanding all the SAS border nodes by
-    # the probe radius spherically.
-    ses = grid.SES(sas, args.probe_radius)
+        try:
+            # Calculate the SAS from the entrance coords and radii. The hemisphere
+            # gives us a starting location since we need to know where the volume
+            # itself begins and the protein orc is where we should stop looking.
+            # Also the algorithm itself tries to find the starting voxel of the SAS
+            # by iterating the direction of the opposite of the outer hemisphere
+            # normal.
+            sas = grid.SAS(
+                protein.entrance.coords, protein.entrance.radii,
+                protein.entrance.outer_hemisphere.tip, protein.orc,
+                -protein.entrance.outer_hemisphere.normal, args.grid_size,
+                fill_inside=True)
 
-    # Print out the volume.
-    print(f"Volume: {ses.volume} Å³")
-    print(f"Took: {(time_ns() - start) * 10 ** (-9)}s")
+            # Using the SAS calculate the SES by expanding all the SAS border nodes
+            # by the probe radius spherically.
+            ses = grid.SES(sas, args.probe_radius)
 
-    if args.vertices_file or args.visualize:
-        # Grab the outer border vertices of the SES this takes a while because
-        # it runs connected components again searching for borders only so it
-        # is slightly faster than a full node search.
-        verts = ses.vertices
-        if args.vertices_file:
-            io.vertices_file(args.vertices_file, verts)
-        if args.visualize:
-            visualization.coordinates(verts, plot_type=args.visualize)
+            if args.vertices_file or args.visualize:
+                # Grab the outer border vertices of the SES this takes a while
+                # because it runs connected components again searching for borders
+                # only so it is slightly faster than a full node search.
+                verts = ses.vertices
+                if args.vertices_file:
+                    name_list = args.vertices_file.split('.')
+                    name_list[-2] = f"{name_list[-2]}_{i+1}"
+                    io.vertices_file(".".join(name_list), verts)
+                if args.visualize:
+                    visualization.coordinates(verts, plot_type=args.visualize)
+
+            # Print out the volume.
+            with open(results_file, "a+") as results:
+                results.write(f"{i+1},{ses.volume}\n")
+            print(f"Volume: {ses.volume} Å³")
+        except Exception as e:
+            with open(results_file, "a+") as results:
+                results.write(f"{i+1},{e}\n")
+            print(f"Failed: {e} Å³")
+
+        print(f"Took: {(time_ns() - start) * 10 ** (-9)}s")
 
 
 if __name__ == '__main__':

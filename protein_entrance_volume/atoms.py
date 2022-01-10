@@ -142,29 +142,39 @@ class Protein:
         boundary_sphere = boundary.Sphere(
             self.arc, self.ar_coords, points_distance)
         coords = boundary_sphere.coords
+        # Add atoms mbr radii by extension
+        radii = atoms_mbr[1] + extension
+        radii = np.append(
+            radii, np.full(boundary_sphere.coords.shape[0], extension)
+        )
         # No outer means to not create the outer residue faux hemisphere
         # boundary
+        # Outer residue boundary hemisphere coords same explanations as
+        # above except for only generates on the outer side of the best fit
+        # plane of the outer residue atoms.
+        outer_hemisphere = boundary.Hemisphere(
+            self.orc, self.or_coords, self.irc, points_distance)
         if not no_outer:
-            # Outer residue boundary hemisphere coords same explanations as
-            # above except for only generates on the outer side of the best fit
-            # plane of the outer residue atoms.
-            outer_hemisphere = boundary.Hemisphere(
-                self.orc, self.or_coords, self.irc, points_distance)
+            # Add outer hemisphere coords to coordinates if we are using outer
             coords = np.vstack((coords, outer_hemisphere.coords))
+            # Append outer hemisphere spheres radii to radii array
+            radii = np.append(
+                radii, np.full(outer_hemisphere.coords.shape[0], extension)
+            )
         # No inner means to not create the inner residue faux spheres boundary
+        # Inner residue boundary hemisphere coords same explanations as
+        # above except for only generates on the outer side of the best fit
+        # plane of the inner residue atoms.
+        inner_hemisphere = boundary.Hemisphere(
+            self.irc, self.ir_coords, self.orc, points_distance)
         if not no_inner:
-            # Inner residue boundary hemisphere coords same explanations as
-            # above except for only generates on the outer side of the best fit
-            # plane of the inner residue atoms.
-            inner_hemisphere = boundary.Hemisphere(
-                self.irc, self.ir_coords, self.orc, points_distance)
+            # Add inner hemisphere coords to coordinates if we are using inner
             coords = np.vstack((coords, inner_hemisphere.coords))
-        # Append probe extended atom radii array with an array of length equal
-        # to the total number of boundary spheres filled with values of probe
-        # radius.
-        radii = np.append(
-            atoms_mbr[1] + extension, np.full(coords.shape[0], extension)
-        )
+            # Append inner hemisphere spheres radii to radii array
+            radii = np.append(
+                radii, np.full(inner_hemisphere.coords.shape[0], extension)
+            )
+
         coords = np.vstack((atoms_mbr[0], coords))
         self._entrance = Entrance(
             coords, radii, boundary_sphere, outer_hemisphere, inner_hemisphere)
