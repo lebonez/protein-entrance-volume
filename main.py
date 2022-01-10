@@ -95,7 +95,7 @@ def main():
     results_file = f"{time_ns()}.results"
 
     for i, protein in enumerate(proteins):
-        print(f"Frame: {i}")
+        print(f"Frame: {i+1}")
         start = time_ns()
         # Generate the entrance of the protein which includes making all of the
         # boundaries and minimizing the problem scope to a minimum bounding
