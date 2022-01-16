@@ -2,7 +2,7 @@
 Created by: Mitchell Walls
 Email: miwalls@siue.edu
 """
-import warnings
+# import warnings
 import numpy as np
 from protein_entrance_volume import utils
 from protein_entrance_volume import boundary
@@ -167,7 +167,6 @@ class Protein:
             radii = np.append(
                 radii, np.full(inner_hemisphere.coords.shape[0], extension)
             )
-
 
         minimum_distance = utils.distance(self.arc, outer_hemisphere.tip)
         # Generate the larger outer boundary sphere coords

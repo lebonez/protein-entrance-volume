@@ -5,6 +5,40 @@ Email: miwalls@siue.edu
 import numpy as np
 
 
+def parse_frames(frames):
+    """
+    Parse frames from a string of comma separated or single (-) dash ranges or
+    integer frames.
+    """
+    frame_results = []
+    frames = frames.split(',')
+    for frame in frames:
+        if '-' in frame:
+            frame_range = frame.split('-')
+            if len(frame_range) > 2:
+                raise ValueError(f"Frame ranges should be like (a-b) was "
+                                 f"{frame}.")
+            if int(frame_range[0]) >= int(frame_range[1]):
+                raise ValueError("Frame range (a-b) 'a' must be less than "
+                                 "'b'.")
+            try:
+                frame_results.extend(
+                    range(int(frame_range[0]), int(frame_range[1]) + 1)
+                )
+            except ValueError as value_error:
+                raise ValueError(
+                    f"Frame range must both be integers was {frame}."
+                ) from value_error
+        else:
+            try:
+                frame_results.append(int(frame))
+            except ValueError as value_error:
+                raise ValueError(
+                    f"Frame must be an integer was {frame}."
+                ) from value_error
+    return frame_results
+
+
 def distance(first, second):
     """
     Return cartesian distance between two points.
@@ -112,14 +146,14 @@ def inside_mbr(coords, mins, maxes):
     return ((coords > mins) & (coords < maxes)).all(axis=1)
 
 
-def sphere_num_points(radius, distance):
+def sphere_num_points(radius, dist):
     """
     Calculate the optimum number of points given the radius of sphere and the
     distance between the points on that sphere.
     """
     ratio = np.cos(4 * np.pi / (1 + np.sqrt(5)))
     radius2 = radius ** 2
-    distance2 = distance ** 2
+    distance2 = dist ** 2
     # solve for N, d = r * sqrt((cos(b)*sqrt(6/N-9/N^2)-cos(a)*sqrt(
     # 2/N-1/N^2))^2+(sin(b)*sqrt(6/N-9/N^2)-sin(a)*sqrt(2/N-1/N^2))^2+4/N^2)
     # This is the approximation of the ugly equation above. 1.85 gives a very

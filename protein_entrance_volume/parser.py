@@ -100,4 +100,4 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None):
                                               inner_residues_bool)
 
             yield atoms.Protein(coords_array, radii_array, outer_residues_bool,
-                             inner_residues_bool, all_residues_bool)
+                                inner_residues_bool, all_residues_bool)
