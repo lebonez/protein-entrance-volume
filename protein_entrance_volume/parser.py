@@ -46,7 +46,8 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None, frames=None):
                     break
                 if not search_for_frame:
                     print("Searching for next frame (could take a while if "
-                          "file contains a lot of frames)...")
+                          "file contains a lot of frames or you are "
+                          "referencing a much later frame)...")
                     search_for_frame = True
                 # We're done processing the current frame so set current frame
                 # to the next frame
