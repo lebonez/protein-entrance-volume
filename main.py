@@ -5,6 +5,7 @@ Email: miwalls@siue.edu
 """
 import argparse
 import time
+import warnings
 from protein_entrance_volume import parser
 from protein_entrance_volume import grid
 from protein_entrance_volume import io
@@ -111,6 +112,7 @@ def main():
 
     results_file = f"{time.strftime('%Y%m%d-%H%M%S')}.results"
 
+    # Not using enumerate since we want to see later if we process any frames
     i = 0
     for protein in protein_frames:
         if frames is not None:
@@ -172,8 +174,11 @@ def main():
 
         print(f"Took: {(time.time_ns() - start) * 10 ** (-9)}s")
 
+    # As referenced above we might've not processed frames so dump a warning
+    # here.
     if not i:
-        print("Warning: No frames were found")
+        warnings.warn("Warning: No frames were found maybe PDB file is empty "
+                      "or the -F options had invalid frame numbers.")
 
 
 if __name__ == '__main__':
