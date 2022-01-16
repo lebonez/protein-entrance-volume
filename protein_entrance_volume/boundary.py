@@ -100,6 +100,8 @@ class Sphere:
         self._centroid = centroid
         # This should probably rethought
         self._radius = utils.average_distance(self._centroid, coords)
+        # Make sure the radius is larger than a minimum distance if not set
+        # radius to minimum distance.
         if minimum_distance and self._radius <= minimum_distance:
             self._radius = minimum_distance
 
