@@ -148,7 +148,7 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None, frames=None):
                     yield atoms.Protein(coords_array, radii_array,
                                         outer_residues_bool,
                                         inner_residues_bool, all_residues_bool,
-                                        frame_number=current_frame - 1)
+                                        frame_number=current_frame)
 
             except UnboundLocalError as local_error:
                 raise UnboundLocalError("PDB file is empty.") from local_error
