@@ -108,7 +108,7 @@ class Protein:
         extend past the max radius (i.e. probe_radius).
         """
         # Get the distance between the irc and arc plus the max radius
-        distance = np.linalg.norm(self.irc - self.arc)
+        distance = utils.distance(self.irc, self.arc)
         distance += (self.radii.max() + extension) * 2
 
         # Calculate minimum and maximum x, y, z coordinates both as an array
@@ -132,21 +132,14 @@ class Protein:
         # Reduce computation complexity for the grid by only using spheres
         # within the mbr calculated by the inner and outer residue atoms.
         atoms_mbr = self.residues_mbr(extension=extension)
+        coords = atoms_mbr[0]
+        radii = atoms_mbr[1] + extension
 
         # how far should each faux sphere be on the boundary hemispheres and
         # sphere. Smaller distance make a slight difference in accuracy but
         # increases computation time significantly.
         points_distance = extension / resolution
 
-        # Generate the larger outer boundary sphere coords
-        boundary_sphere = boundary.Sphere(
-            self.arc, self.ar_coords, points_distance)
-        coords = boundary_sphere.coords
-        # Add atoms mbr radii by extension
-        radii = atoms_mbr[1] + extension
-        radii = np.append(
-            radii, np.full(boundary_sphere.coords.shape[0], extension)
-        )
         # No outer means to not create the outer residue faux hemisphere
         # boundary
         # Outer residue boundary hemisphere coords same explanations as
@@ -175,7 +168,17 @@ class Protein:
                 radii, np.full(inner_hemisphere.coords.shape[0], extension)
             )
 
-        coords = np.vstack((atoms_mbr[0], coords))
+
+        minimum_distance = utils.distance(self.arc, outer_hemisphere.tip)
+        # Generate the larger outer boundary sphere coords
+        boundary_sphere = boundary.Sphere(self.arc, self.ar_coords,
+                                          points_distance,
+                                          minimum_distance=minimum_distance)
+        coords = np.vstack((coords, boundary_sphere.coords))
+        # Add atoms mbr radii by extension
+        radii = np.append(
+            radii, np.full(boundary_sphere.coords.shape[0], extension)
+        )
         self._entrance = Entrance(
             coords, radii, boundary_sphere, outer_hemisphere, inner_hemisphere)
 
@@ -649,6 +652,6 @@ def get_atom_radius(at_name, at_elem, resname, het_atm, rtype="united"):
     if resname in {"FAD", "NAD", "AMX", "APU"} and at_name.startswith("H"):
         return _atomic_radii[15][typekey]
 
-    warnings.warn(f"{at_name}:{resname} not in radii library was set to "
-                  "1.2 Å.")
+    # warnings.warn(f"{at_name}:{resname} not in radii library was set to "
+    #               "1.2 Å.")
     return 1.2

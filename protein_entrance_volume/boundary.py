@@ -21,6 +21,7 @@ class Hemisphere:
         """
         self._centroid = centroid
         self._radius = utils.average_distance(self._centroid, coords)
+
         num_points = utils.sphere_num_points(self._radius, distance)
         unit_sphere = utils.generate_sphere_points(num_points=num_points)
 
@@ -88,7 +89,7 @@ class Sphere:
     """
     Generates and holds the properties of the sphere.
     """
-    def __init__(self, centroid, coords, distance):
+    def __init__(self, centroid, coords, distance, minimum_distance=0):
         """
         Generates a sphere using the unit sphere from utils scaling to radius
         and moving to centroid. Radius is calculated using the average distance
@@ -99,6 +100,9 @@ class Sphere:
         self._centroid = centroid
         # This should probably rethought
         self._radius = utils.average_distance(self._centroid, coords)
+        if minimum_distance and self._radius <= minimum_distance:
+            self._radius = minimum_distance
+
         num_points = utils.sphere_num_points(self._radius, distance)
         unit_sphere = utils.generate_sphere_points(num_points=num_points)
         self._coords = unit_sphere * self._radius + self._centroid

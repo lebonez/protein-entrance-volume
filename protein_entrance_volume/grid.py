@@ -8,6 +8,7 @@ from numba.typed import Dict
 from numba import types
 from protein_entrance_volume import rasterize
 from protein_entrance_volume import exception
+from protein_entrance_volume import utils
 
 
 # Can't reference this type inside a numba compiled function.
@@ -375,14 +376,20 @@ class Grid:
         stop_voxel = self.gridify_point(stop).astype(np.float64)
         # Convert the above to int which basically rounds down to integer.
         voxel = location.astype(np.int64)
+        # Track whether we are at the stop or not.
+        at_stop = False
         while self.grid[voxel[0], voxel[1], voxel[2]]:
+            if at_stop:
+                # Stop voxel was not valid either so now we fail.
+                raise exception.StartingVoxelNotFound
             # Iteration in the direction of direction
             location += direction
 
             # We are now too close to the stop voxel so we need to stop before
             # ending up outside of the grid itself with an index error.
-            if np.linalg.norm(location - stop_voxel) < 2:
-                raise exception.StartingVoxelNotFound
+            if utils.distance(location, stop_voxel) <= 1:
+                # We hit the stop voxel continue to see if it is valid.
+                at_stop = True
             voxel = location.astype(np.int64)
         return voxel
 

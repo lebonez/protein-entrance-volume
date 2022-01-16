@@ -5,6 +5,13 @@ Email: miwalls@siue.edu
 import numpy as np
 
 
+def distance(first, second):
+    """
+    Return cartesian distance between two points.
+    """
+    return np.linalg.norm(first - second)
+
+
 def average_distance(point, points):
     """
     Return average cartesian distance between point and points.

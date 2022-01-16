@@ -4,7 +4,7 @@ Created by: Mitchell Walls
 Email: miwalls@siue.edu
 """
 import argparse
-from time import time_ns
+import time
 from protein_entrance_volume import parser
 from protein_entrance_volume import grid
 from protein_entrance_volume import io
@@ -51,6 +51,9 @@ def parse_args():
         '-f', '--pdb-file', required=True, type=str,
         help="Path to the PDB file.")
     parser.add_argument(
+        '-d', '--dump-results', default=False, action='store_true',
+        help="Dumps results to a ((datetime).results) file.")
+    parser.add_argument(
         '-V', '--visualize', const='scatter', nargs='?',
         choices=('scatter',),
         help="If specified, creates a visualization plot (default: scatter).")
@@ -88,15 +91,15 @@ def main():
         raise argparse.ArgumentError(None, msg)
 
     # Build the protein objects processes multiple frames
-    proteins = parser.parse_pdb(
+    protein_frames = parser.parse_pdb(
         args.pdb_file, outer_residues=args.outer_residues,
         inner_residues=args.inner_residues)
 
-    results_file = f"{time_ns()}.results"
+    results_file = f"{time.strftime('%Y%m%d-%H%M%S')}.results"
 
-    for i, protein in enumerate(proteins):
+    for i, protein in enumerate(protein_frames):
         print(f"Frame: {i+1}")
-        start = time_ns()
+        start = time.time_ns()
         # Generate the entrance of the protein which includes making all of the
         # boundaries and minimizing the problem scope to a minimum bounding
         # rectangle.
@@ -133,16 +136,20 @@ def main():
                 if args.visualize:
                     visualization.coordinates(verts, plot_type=args.visualize)
 
+            # Write out the results to a timestamped file.
+            if args.dump_results:
+                with open(results_file, "a+") as results:
+                    results.write(f"{i+1},{ses.volume}\n")
             # Print out the volume.
-            with open(results_file, "a+") as results:
-                results.write(f"{i+1},{ses.volume}\n")
             print(f"Volume: {ses.volume} Å³")
         except Exception as e:
-            with open(results_file, "a+") as results:
-                results.write(f"{i+1},{e}\n")
+            # Write out the failures to a timestamped file.
+            if args.dump_results:
+                with open(results_file, "a+") as results:
+                    results.write(f"{i+1},{e}\n")
             print(f"Failed: {e} Å³")
 
-        print(f"Took: {(time_ns() - start) * 10 ** (-9)}s")
+        print(f"Took: {(time.time_ns() - start) * 10 ** (-9)}s")
 
 
 if __name__ == '__main__':
