@@ -26,6 +26,7 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None, frames=None):
     frames_hits = 0
     # Initialize current frame as frame_number
     current_frame = frame_number
+    search_for_frame = False
     with open(pdb_file, 'r', encoding='utf-8') as handle:
         for i, line in enumerate(handle):
             # We are at the end of the frame
@@ -43,6 +44,10 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None, frames=None):
                 # in the specific frames list.
                 if frames_hits >= len(frames):
                     break
+                if not search_for_frame:
+                    print("Searching for next frame (could take a while if "
+                          "file contains a lot of frames)...")
+                    search_for_frame = True
                 # We're done processing the current frame so set current frame
                 # to the next frame
                 current_frame = frame_number
@@ -50,6 +55,7 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None, frames=None):
 
             # Make sure the current frame is set as the frame_number.
             current_frame = frame_number
+            search_for_frame = False
 
             if 'END' in line:
                 if frames is not None:
@@ -73,7 +79,7 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None, frames=None):
                 yield atoms.Protein(coords_array, radii_array,
                                     outer_residues_bool, inner_residues_bool,
                                     all_residues_bool,
-                                    frame_number=current_frame)
+                                    frame_number=current_frame - 1)
             record_type = line[0:6].strip()
             if record_type not in allowed_records:
                 continue
@@ -142,7 +148,7 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None, frames=None):
                     yield atoms.Protein(coords_array, radii_array,
                                         outer_residues_bool,
                                         inner_residues_bool, all_residues_bool,
-                                        frame_number=current_frame)
+                                        frame_number=current_frame - 1)
 
             except UnboundLocalError as local_error:
                 raise UnboundLocalError("PDB file is empty.") from local_error
