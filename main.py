@@ -73,8 +73,8 @@ generated is deteremined by the file extension type provided in this argument.
          marked as a "DOT" atom. This is by far the slowest file output.
     csv: Vertices array is dumped to a file with "x,y,z" as header and each
          line containing a comma separated x,y,z coordinate.
-    txt: Vertices array is dumped to a txt file with first line containing
-         volume of vertices and x y z coordinates space separated.
+    txt: Vertices array is dumped to a txt file with x y z coordinates on each
+         line space separated.
     npz: Numpy array compressed binary file which is recommended if loading the
          vertices array back into numpy for post processing uses much less
          space and is faster.
