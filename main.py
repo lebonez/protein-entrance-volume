@@ -54,7 +54,7 @@ def parse_args():
     arg_parser.add_argument(
         '-F', '--frames', required=False, type=str,
         help="Specify specific frames to run for a multiframe PDB file. Can "
-        " be a range (i.e. 253-1014), comma separated (i.e. 1,61,76,205), or "
+        "be a range (i.e. 253-1014), comma separated (i.e. 1,61,76,205), or "
         "a single frame (i.e. 25). Can also be a combination "
         "(i.e. 1-25,205,1062-2052).")
     arg_parser.add_argument(
