@@ -6,7 +6,7 @@ import numpy as np
 from protein_entrance_volume import atoms
 
 
-def parse_pdb(pdb_file, outer_residues=None, inner_residues=None):
+def parse_pdb(pdb_file, outer_residues=None, inner_residues=None, frames=None):
     """
     Make an array of describing details about every atom noting the
     coordinates, radii, and inner/outer residue boolean.
@@ -18,10 +18,29 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None):
     resseqs = []
     coords = []
     radii = []
-    multi_frame = False
+    multi_frame = frames is not None
+    frame_number = 1
+    frames_hits = 0
+    current_frame = frame_number
     with open(pdb_file, 'r', encoding='utf-8') as handle:
         for i, line in enumerate(handle):
             if 'END' in line:
+                current_frame = frame_number
+                frame_number += 1
+
+            if frames is not None and current_frame not in frames:
+                if frames_hits >= len(frames):
+                    break
+                # We were probably at the END line so set next frame as
+                # current frame.
+                current_frame = frame_number
+                continue
+
+            current_frame = frame_number
+
+            if 'END' in line:
+                if frames is not None:
+                    frames_hits += 1
                 # Has multiple frames so lets yield each frame one at a time.
                 multi_frame = True
                 coords_array = np.array(coords)

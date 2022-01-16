@@ -91,6 +91,7 @@ def main():
     """
     args = parse_args()
 
+    frames = None
     if args.frames:
         frames = utils.parse_frames(args.frames)
 
@@ -106,20 +107,18 @@ def main():
     # Build the protein objects processes multiple frames
     protein_frames = parser.parse_pdb(
         args.pdb_file, outer_residues=args.outer_residues,
-        inner_residues=args.inner_residues)
+        inner_residues=args.inner_residues, frames=frames)
 
     results_file = f"{time.strftime('%Y%m%d-%H%M%S')}.results"
 
-    frames_hits = 0
-    for i, protein in enumerate(protein_frames):
-        if args.frames and (i + 1) not in frames:
-            if frames_hits >= len(frames):
-                break
-            continue
-
-        if args.frames:
-            frames_hits += 1
-        print(f"Frame: {i + 1}")
+    i = 0
+    for protein in protein_frames:
+        if frames is not None:
+            current_frame = frames[i]
+        else:
+            current_frame = i + 1
+        i += 1
+        print(f"Frame: {current_frame}")
         start = time.time_ns()
         # Generate the entrance of the protein which includes making all of the
         # boundaries and minimizing the problem scope to a minimum bounding
@@ -153,7 +152,7 @@ def main():
                 verts = ses.vertices
                 if args.vertices_file:
                     name_list = args.vertices_file.split('.')
-                    name_list[-2] = f"{name_list[-2]}_{i + 1}"
+                    name_list[-2] = f"{name_list[-2]}_{current_frame}"
                     io.vertices_file(".".join(name_list), verts)
                 if args.visualize:
                     visualization.coordinates(verts, plot_type=args.visualize)
@@ -161,17 +160,20 @@ def main():
             # Write out the results to a timestamped file.
             if args.dump_results:
                 with open(results_file, "a+", encoding='utf-8') as results:
-                    results.write(f"{i + 1},{ses.volume}\n")
+                    results.write(f"{current_frame},{ses.volume}\n")
             # Print out the volume.
             print(f"Volume: {ses.volume} Å³")
         except Exception as exception:
             # Write out the failures to a timestamped file.
             if args.dump_results:
                 with open(results_file, "a+", encoding='utf-8') as results:
-                    results.write(f"{i + 1},{exception}\n")
+                    results.write(f"{current_frame},{exception}\n")
             print(f"Failed: {exception} Å³")
 
         print(f"Took: {(time.time_ns() - start) * 10 ** (-9)}s")
+        
+    if not i:
+        print("Warning: No frames were found")
 
 
 if __name__ == '__main__':
