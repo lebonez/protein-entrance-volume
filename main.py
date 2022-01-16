@@ -110,10 +110,15 @@ def main():
 
     results_file = f"{time.strftime('%Y%m%d-%H%M%S')}.results"
 
+    frames_hits = 0
     for i, protein in enumerate(protein_frames):
         if args.frames and (i + 1) not in frames:
+            if frames_hits >= len(frames):
+                break
             continue
 
+        if args.frames:
+            frames_hits += 1
         print(f"Frame: {i + 1}")
         start = time.time_ns()
         # Generate the entrance of the protein which includes making all of the

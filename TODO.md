@@ -15,8 +15,8 @@ the program called be something like "pev -f example.pdb..." rather than "python
 Create a nice cli so that we can do more things like calculate the SES/SAS of
 the whole protein and not just the volume and much more. https://docs.python.org/3/library/argparse.html#sub-commands
 
-Handle file types in atoms class as well as any file
-output (dcd and others). Problem is this adds command line complexity.
+Handle other files types like DCD or PSF files rather than just PDBS. Problem is this adds command line complexity.
+PDBs get really large at greater than hundreds of thousands of frames
 
 ### Known Issues
 
