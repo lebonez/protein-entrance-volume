@@ -59,7 +59,8 @@ def parse_args():
         "(i.e. 1-25,205,1062-2052).")
     arg_parser.add_argument(
         '-d', '--dump-results', default=False, action='store_true',
-        help="Dumps results to a ((datetime).results) file.")
+        help="Dumps results to a ((datetime).results) file where each line is "
+        "({frame_index},{volume}).")
     arg_parser.add_argument(
         '-V', '--visualize', const='scatter', nargs='?',
         choices=('scatter',),
@@ -69,6 +70,8 @@ def parse_args():
         help="""
 Output the vertices of the entrance volume SES to file where the file type
 generated is deteremined by the file extension type provided in this argument.
+If there are multiple frames the current frame index is prepended to the file
+extension (i.e. example_{index}.xyz)
     xyz: Outputs the vertices as a molecular xyz file with each vertices
          marked as a "DOT" atom. This is by far the slowest file output.
     csv: Vertices array is dumped to a file with "x,y,z" as header and each
