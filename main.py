@@ -115,10 +115,7 @@ def main():
     # Not using enumerate since we want to see later if we process any frames
     i = 0
     for protein in protein_frames:
-        if frames is not None:
-            current_frame = frames[i]
-        else:
-            current_frame = i + 1
+        current_frame = protein.frame_number
         i += 1
         print(f"Frame: {current_frame}")
         start = time.time_ns()

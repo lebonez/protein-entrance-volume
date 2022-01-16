@@ -22,7 +22,7 @@ class Protein:
     _entrance = None
 
     def __init__(self, coords, radii, outer_residues_bool, inner_residues_bool,
-                 all_residues_bool):
+                 all_residues_bool, frame_number=1):
         """
         Set dataframe to class. Note to never reference _df outside of this
         class just add needed functions and properties to this class.
@@ -32,6 +32,7 @@ class Protein:
         self.outer_residues_bool = outer_residues_bool
         self.inner_residues_bool = inner_residues_bool
         self.all_residues_bool = all_residues_bool
+        self.frame_number = frame_number
 
     @property
     def or_coords(self):

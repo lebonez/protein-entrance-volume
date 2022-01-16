@@ -18,7 +18,8 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None, frames=None):
     resseqs = []
     coords = []
     radii = []
-
+    if frames is not None:
+        frames = set(frames)
     # Set initial frames
     frame_number = 1
     # How many times we have hit an actual frame within frames if not None
@@ -71,7 +72,8 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None, frames=None):
 
                 yield atoms.Protein(coords_array, radii_array,
                                     outer_residues_bool, inner_residues_bool,
-                                    all_residues_bool)
+                                    all_residues_bool,
+                                    frame_number=current_frame)
             record_type = line[0:6].strip()
             if record_type not in allowed_records:
                 continue
@@ -139,6 +141,8 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None, frames=None):
 
                     yield atoms.Protein(coords_array, radii_array,
                                         outer_residues_bool,
-                                        inner_residues_bool, all_residues_bool)
+                                        inner_residues_bool, all_residues_bool,
+                                        frame_number=current_frame)
+
             except UnboundLocalError as local_error:
                 raise UnboundLocalError("PDB file is empty.") from local_error
