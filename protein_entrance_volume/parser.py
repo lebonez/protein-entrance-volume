@@ -113,9 +113,11 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None, frames=None):
                 atoms.get_atom_radius(name, element, resname, hetero_flag)
             )
 
-        # Check to see if the last frame would've yielded or not by if the line
-        # doesn't contain 'END'.
+        # If the for loop did end early we'll see if we need to yield the last
+        # frame.
         else:
+            # Check to see if the last frame would've yielded or not by if the
+            # line doesn't contain 'END'.
             if 'END' not in line:
                 coords_array = np.array(coords)
                 resseqs_array = np.array(resseqs)
@@ -125,12 +127,13 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None, frames=None):
                 coords = []
                 radii = []
 
-                # Generate a boolean array of definining where the outer, inner,
-                # and all (outer and inner) residues are located.
+                # Generate a boolean array of definining where the outer,
+                # inner, and all (outer and inner) residues are located.
                 outer_residues_bool = np.in1d(resseqs_array, outer_residues)
                 inner_residues_bool = np.in1d(resseqs_array, inner_residues)
                 all_residues_bool = np.logical_or(outer_residues_bool,
                                                   inner_residues_bool)
 
-                yield atoms.Protein(coords_array, radii_array, outer_residues_bool,
-                                    inner_residues_bool, all_residues_bool)
+                yield atoms.Protein(coords_array, radii_array,
+                                    outer_residues_bool, inner_residues_bool,
+                                    all_residues_bool)
