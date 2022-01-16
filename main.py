@@ -171,7 +171,7 @@ def main():
             print(f"Failed: {exception} Å³")
 
         print(f"Took: {(time.time_ns() - start) * 10 ** (-9)}s")
-        
+
     if not i:
         print("Warning: No frames were found")
 
