@@ -18,31 +18,42 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None, frames=None):
     resseqs = []
     coords = []
     radii = []
-    multi_frame = frames is not None
+
+    # Set initial frames
     frame_number = 1
+    # How many times we have hit an actual frame within frames if not None
     frames_hits = 0
+    # Initialize current frame as frame_number
     current_frame = frame_number
     with open(pdb_file, 'r', encoding='utf-8') as handle:
         for i, line in enumerate(handle):
+            # We are at the end of the frame
             if 'END' in line:
+                # store temporarily the ending frame as current frame
                 current_frame = frame_number
+                # increment frame by one
                 frame_number += 1
 
+            # We are limiting which frames we are looking at check if the
+            # current frame is in frames if not just skip the current frames
+            # lines.
             if frames is not None and current_frame not in frames:
+                # Time saver to stop if we have hit all of the frames in the
+                # in the specific frames list.
                 if frames_hits >= len(frames):
                     break
-                # We were probably at the END line so set next frame as
-                # current frame.
+                # We're done processing the current frame so set current frame
+                # to the next frame
                 current_frame = frame_number
                 continue
 
+            # Make sure the current frame is set as the frame_number.
             current_frame = frame_number
 
             if 'END' in line:
                 if frames is not None:
                     frames_hits += 1
                 # Has multiple frames so lets yield each frame one at a time.
-                multi_frame = True
                 coords_array = np.array(coords)
                 resseqs_array = np.array(resseqs)
                 radii_array = np.array(radii)
@@ -102,21 +113,24 @@ def parse_pdb(pdb_file, outer_residues=None, inner_residues=None, frames=None):
                 atoms.get_atom_radius(name, element, resname, hetero_flag)
             )
 
-        if not multi_frame:
-            coords_array = np.array(coords)
-            resseqs_array = np.array(resseqs)
-            radii_array = np.array(radii)
+        # Check to see if the last frame would've yielded or not by if the line
+        # doesn't contain 'END'.
+        else:
+            if 'END' not in line:
+                coords_array = np.array(coords)
+                resseqs_array = np.array(resseqs)
+                radii_array = np.array(radii)
 
-            resseqs = []
-            coords = []
-            radii = []
+                resseqs = []
+                coords = []
+                radii = []
 
-            # Generate a boolean array of definining where the outer, inner,
-            # and all (outer and inner) residues are located.
-            outer_residues_bool = np.in1d(resseqs_array, outer_residues)
-            inner_residues_bool = np.in1d(resseqs_array, inner_residues)
-            all_residues_bool = np.logical_or(outer_residues_bool,
-                                              inner_residues_bool)
+                # Generate a boolean array of definining where the outer, inner,
+                # and all (outer and inner) residues are located.
+                outer_residues_bool = np.in1d(resseqs_array, outer_residues)
+                inner_residues_bool = np.in1d(resseqs_array, inner_residues)
+                all_residues_bool = np.logical_or(outer_residues_bool,
+                                                  inner_residues_bool)
 
-            yield atoms.Protein(coords_array, radii_array, outer_residues_bool,
-                                inner_residues_bool, all_residues_bool)
+                yield atoms.Protein(coords_array, radii_array, outer_residues_bool,
+                                    inner_residues_bool, all_residues_bool)
