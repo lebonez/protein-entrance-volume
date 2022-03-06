@@ -21,5 +21,6 @@ PDBs get really large at greater than hundreds of thousands of frames
 ### Known Issues
 
 There is an issue where certain atoms from the PDB file have no radius.
+Can be fixed by looking them up on a database online.
 Typically this is the heme and other hydrogen atoms
 so for now it is just set to 1.2 angstrom by default.
